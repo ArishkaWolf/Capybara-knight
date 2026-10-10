@@ -1,0 +1,16 @@
+export type EvidenceId = 'fur' | 'paws' | 'quill';
+export type GameState = { drink: string | null; courage: number; clues: number; helping: boolean; evidence: EvidenceId[]; talkedToPorcupine: boolean };
+export type Condition = { found?: EvidenceId[]; missing?: EvidenceId[]; talkedToPorcupine?: boolean };
+export type DialogueLine = { speaker: string; text: string; condition?: Condition };
+export type Rect = { x: number; y: number; width: number; height: number };
+export type Hotspot = { id: EvidenceId; label: string; rect: Rect; dialogues: DialogueLine[] };
+export type Search = { imageSize: { width: number; height: number }; hotspots: Hotspot[]; finishLabel: string };
+export type Interaction = { id: string; label: string; imageSize: { width: number; height: number }; rect: Rect };
+export type Ending = { title: string; text: string };
+export type Choice = { id: string; label: string; next: string | null; effects: Partial<GameState>; ending?: Ending };
+export type Scene = { id: string; image: string; chapter: string; dialogues: DialogueLine[]; next: string | null; choices?: Choice[]; search?: Search; interaction?: Interaction };
+export type Story = { schemaVersion: number; version: string; title: string; startScene: string; scenes: Scene[] };
+export type StoryPackage = { story: Story; baseUrl: string | null };
+export type Progress = { version: string; sceneId: string; line: number; state: GameState; ending: Ending | null; searching?: boolean; interacting?: boolean };
+export type PlayerProfile = { id: string; name: string; createdAt: number; lastPlayedAt: number | null; progress: Progress | null };
+export type ProfileLibrary = { schemaVersion: 1; players: PlayerProfile[] };

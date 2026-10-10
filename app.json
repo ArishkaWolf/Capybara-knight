@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Капибара-рыцарь",
+    "slug": "capybara-knight",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/branding/icon.png",
+    "backgroundColor": "#15100c",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "requireFullScreen": true,
+      "bundleIdentifier": "com.novela.capybaraknight",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.novela.capybaraknight",
+      "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/branding/adaptive-icon.png",
+        "backgroundColor": "#15100c"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "Капибара-рыцарь",
+      "favicon": "./assets/branding/favicon.png"
+    },
+    "plugins": [
+      ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }],
+      "expo-status-bar",
+      "expo-image",
+      ["expo-splash-screen", {
+        "backgroundColor": "#15100c",
+        "image": "./assets/branding/splash.png",
+        "imageWidth": 180,
+        "resizeMode": "contain"
+      }]
+    ]
+  }
+}

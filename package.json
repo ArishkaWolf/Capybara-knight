@@ -1,0 +1,45 @@
+{
+  "name": "capybara-knight-novela",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "prestart": "npm run prepare:story",
+    "start": "expo start",
+    "preweb": "npm run prepare:story",
+    "web": "expo start --web",
+    "preandroid": "npm run prepare:story",
+    "android": "expo start --android",
+    "preios": "npm run prepare:story",
+    "ios": "expo start --ios",
+    "prepare:story": "node scripts/prepare-story.mjs",
+    "build:web": "npm run prepare:story && expo export --platform web && node scripts/finalize-web.mjs",
+    "check:mobile": "npm run prepare:story && expo export --platform android --platform ios --output-dir artifacts/mobile-export",
+    "eas-build-post-install": "npm run prepare:story",
+    "preview": "node scripts/preview.mjs",
+    "preview:lan": "node scripts/preview.mjs --lan",
+    "check": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.16",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@types/react": "~19.2.4",
+    "expo": "~57.0.26",
+    "expo-image": "~57.0.5",
+    "expo-screen-orientation": "~57.0.2",
+    "expo-splash-screen": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.2",
+    "typescript": "~6.0.3"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}
