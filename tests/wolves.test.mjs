@@ -22,6 +22,7 @@ test('All three departure routes reach the guarded wolf village with every evide
       for (let i = 0; i < 150 && !progress.ending; i++) {
         if (visited.at(-1) !== progress.sceneId) visited.push(progress.sceneId);
         const scene = sceneById(progress.sceneId);
+        if (progress.sceneId === 'scen12-2' && progress.line === lastLine(progress)) break;
         if (scene.choices && progress.line === lastLine(progress)) {
           assert.equal(advance(story, progress), progress, `${scene.id} must wait for a choice`);
           assert.equal(choose(story, progress, 'unknown'), progress);
@@ -33,7 +34,8 @@ test('All three departure routes reach the guarded wolf village with every evide
       }
       assert.deepEqual(visited, route.path);
       assert.deepEqual(choices, []);
-      assert.equal(progress.ending?.title, 'Продолжение следует');
+      assert.equal(progress.ending, null);
+      assert.equal(advance(story, progress).sceneId, 'scen12-3');
       assert.equal(progress.state.talkedToPorcupine, route.talked);
       assert.deepEqual(progress.state.evidence, evidence);
       assert.equal(progress.state.clues, evidence.length);
@@ -48,7 +50,7 @@ test('Trying to discuss clues leads to a refusal and only an explicit Leave choi
   const scene = sceneById(attempt.sceneId);
   assert.deepEqual(scene.choices.map(choice => choice.label), ['Уйти']);
   const lines = sceneLines(scene, attempt.state);
-  assert.ok(lines.some(line => line.speaker === 'Дикобраз' && line.text.includes('не хочу разговаривать')));
+  assert.ok(lines.some(line => line.speaker === 'Игнат' && line.text.includes('не хочу разговаривать')));
   const ready = { ...attempt, line: lines.length - 1 };
   assert.equal(advance(story, ready), ready);
   const leaving = choose(story, ready, 'leave');
@@ -75,7 +77,7 @@ test('Departure remembers the conversation only on the talk route and uses only 
       }
       const wake = sceneLines(sceneById('scen10-3'), state);
       assert.equal(wake.filter(line => line.condition).length, 1);
-      if (!evidence.includes('fur') && !evidence.includes('paws')) assert.ok(wake.some(line => line.text.includes('Шиншилла слышал рычание')));
+      if (!evidence.includes('fur') && !evidence.includes('paws')) assert.ok(wake.some(line => line.text.includes('Савелий слышал рычание')));
       const spoken = sceneLines(sceneById('scen11-1-clues'), state).filter(line => line.speaker === 'Капибара');
       assert.equal(spoken.length, evidence.includes('quill') && (evidence.includes('fur') || evidence.includes('paws')) ? 2 : 1);
     }

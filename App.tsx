@@ -9,7 +9,7 @@ import { Inspection } from './src/Inspection';
 import { SceneInteraction } from './src/SceneInteraction';
 import { PlayerSelect } from './src/PlayerSelect';
 import { bundledImages } from './src/assets';
-import { advance, choose, inspect, finishSearch, interact, sceneLines } from './src/engine.mjs';
+import { advance, choose, inspect, finishSearch, interact, sceneLines, sceneChoices } from './src/engine.mjs';
 import { bundledPackage, imageUrl } from './src/repository';
 import { useNovel } from './src/useNovel';
 import type { EvidenceId, Progress } from './src/types';
@@ -53,9 +53,10 @@ function Novel() {
   const source = uri && fallbackKey !== imageKey ? { uri: `${uri}&retry=${retry}` } : bundledImages[background.image];
   const interactiveBackground = Boolean(background.search || background.interaction);
   const lines = sceneLines(scene, progress.state);
+  const availableChoices = sceneChoices(scene, progress.state);
   const activeInspection = progress.searching && inspection?.key === `${pack.story.version}:${scene.id}` ? scene.search?.hotspots.find((item) => item.id === inspection.id) : undefined;
   const line = activeInspection && inspection ? activeInspection.dialogues[inspection.line] : !progress.searching && !progress.interacting && progress.line >= 0 ? lines[progress.line] : undefined;
-  const showChoices = screen === 'game' && !progress.ending && !progress.searching && !progress.interacting && !typing && progress.line === lines.length - 1 && Boolean(scene.choices?.length);
+  const showChoices = screen === 'game' && !progress.ending && !progress.searching && !progress.interacting && !typing && progress.line === lines.length - 1 && availableChoices.length > 0;
   const sceneIndex = pack.story.scenes.indexOf(scene);
 
   useEffect(() => {
@@ -159,7 +160,7 @@ function Novel() {
 
   function closeInspection() { setInspection(null); setComplete(false); setTyping(false); }
 
-  const choices = showChoices ? <View style={styles.choices}>{scene.choices!.map((choice, i) => <Pressable key={choice.id} accessibilityRole="button" accessibilityLabel={choice.label} onPress={() => { if (imageReady) move(choose(pack.story, progress, choice.id) as Progress); }} style={({ pressed }) => [styles.choice, scene.choices!.length > 2 && { flexBasis: width < 760 ? '45%' : '30%' }, pressed && { backgroundColor: '#eadbc5' }]}><Text style={styles.choiceNumber}>{String(i + 1).padStart(2, '0')}</Text><Text style={styles.choiceText}>{choice.label}</Text><Text style={styles.choiceArrow}>→</Text></Pressable>)}</View> : null;
+  const choices = showChoices ? <View style={styles.choices}>{availableChoices.map((choice, i) => <Pressable key={choice.id} accessibilityRole="button" accessibilityLabel={choice.label} onPress={() => { if (imageReady) move(choose(pack.story, progress, choice.id) as Progress); }} style={({ pressed }) => [styles.choice, availableChoices.length > 2 && { flexBasis: width < 760 ? '45%' : '30%' }, pressed && { backgroundColor: '#eadbc5' }]}><Text style={styles.choiceNumber}>{String(i + 1).padStart(2, '0')}</Text><Text style={styles.choiceText}>{choice.label}</Text><Text style={styles.choiceArrow}>→</Text></Pressable>)}</View> : null;
   const playerSwitcher = <Pressable accessibilityRole="button" accessibilityLabel="Сменить игрока" onPress={showPlayers} style={[styles.playerSwitch, !portrait && { position: 'absolute', bottom: Math.max(18, insets.bottom + 12), left: Math.max(24, insets.left + 18), maxWidth: width * 0.4 }]}><Text numberOfLines={2} style={styles.currentPlayer}>Играет: {novel.activeProfile?.name}</Text><Text style={styles.switchLabel}>Сменить игрока →</Text></Pressable>;
 
   return <View style={styles.root} onLayout={({ nativeEvent }) => setLayout({ width: nativeEvent.layout.width, height: nativeEvent.layout.height })}>
@@ -183,7 +184,7 @@ function Novel() {
       </ScrollView>
       {!portrait && playerSwitcher}
     </> : <>
-      <Pressable accessibilityRole="button" accessibilityLabel={progress.interacting ? 'Сначала прочитай записку на стойке' : progress.searching && !activeInspection ? 'Осматривай предметы в комнате' : showChoices ? 'Сначала выбери действие в диалоге' : typing ? 'Показать реплику целиком' : 'Следующая реплика или сцена'} onPress={next} style={styles.tapArea} />
+      <Pressable accessibilityRole="button" accessibilityLabel={progress.interacting ? scene.interaction?.hint ?? 'Сначала прочитай записку на стойке' : progress.searching && !activeInspection ? 'Осматривай предметы на картинке' : showChoices ? 'Сначала выбери действие в диалоге' : typing ? 'Показать реплику целиком' : 'Следующая реплика или сцена'} onPress={next} style={styles.tapArea} />
       <View pointerEvents="none" style={[styles.sceneHeading, { top: Math.max(20, insets.top + 12), left: Math.max(24, insets.left + 18) }]}>
         <Text style={styles.chapter}>{scene.chapter}</Text>
         <Text style={styles.counter}>{String(sceneIndex + 1).padStart(2, '0')} / {String(pack.story.scenes.length).padStart(2, '0')}</Text>

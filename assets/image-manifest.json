@@ -148,6 +148,66 @@
       "outputHash": "c4ac9a30e314f14f917b140767709c865116f6658bac2a98913f2ccf307f4aaf"
     },
     {
+      "source": "photo/scen14.png",
+      "sourceHash": "f0e0a92743979d1fa98255e53d4251a3cbf63d2b4ddd937c4149ecf06dc99b60",
+      "output": "assets/story/scen14.webp",
+      "bytesOriginal": 3824428,
+      "bytes": 554510,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "c0f3015f8dcc7008ae9e065c3071cc49b6bb12c7466759673259bafe206b11b0"
+    },
+    {
+      "source": "photo/scen15.png",
+      "sourceHash": "ff3555a4490a97fcaeaf138a4b963ea1335d23462f75b5510e52e78a627a9153",
+      "output": "assets/story/scen15.webp",
+      "bytesOriginal": 2964071,
+      "bytes": 361380,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "dca0e259671a1a636412225683f7459ab5f028033ebfc4967716320dd9e11950"
+    },
+    {
+      "source": "photo/scen16.png",
+      "sourceHash": "8c758063cdf5a24595e94bc41049b40c85c466fc3b1f6d03f075d778f284eff5",
+      "output": "assets/story/scen16.webp",
+      "bytesOriginal": 3071883,
+      "bytes": 390932,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "c35576368c238224f1463ad9c40c58fddae5914785d6b6c40266815d69607c59"
+    },
+    {
+      "source": "photo/scen17.png",
+      "sourceHash": "5205c3698fcc47fe0d76e4e3a9d3f63d874fee2430bb8970801dd7a53644edd4",
+      "output": "assets/story/scen17.webp",
+      "bytesOriginal": 2738645,
+      "bytes": 326494,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "913f35f264679b17b35eabe5d48b1edd29831c4fb5adf417c26c57fffe097a5d"
+    },
+    {
+      "source": "photo/scen18.png",
+      "sourceHash": "7f5a8c43a4f8c6f3151e55ebd8fc2c28a2ed90ad2697bdcfcf3060c768359adf",
+      "output": "assets/story/scen18.webp",
+      "bytesOriginal": 3495555,
+      "bytes": 461738,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "9c8f24376bb3a7b2331891ad9ae00585220f498468a53444644be621ebf73ba2"
+    },
+    {
+      "source": "photo/scen19.png",
+      "sourceHash": "b57a7e98cee2a56cfb5a47ca5ccbae12e240c4276ebdf447456273018bbcdbe6",
+      "output": "assets/story/scen19.webp",
+      "bytesOriginal": 2877441,
+      "bytes": 352590,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "24c5c2b7b3c13835457abe753b1412cb46d8055ebcba03e4fee08d3eab55a7df"
+    },
+    {
       "source": "photo/scen2.png",
       "sourceHash": "ce14bc4a930aca1677be3a4d9f9944182011e687d9277e351732046abbde5be5",
       "output": "assets/story/scen2.webp",
@@ -156,6 +216,96 @@
       "width": 1672,
       "height": 941,
       "outputHash": "ce37b9ae85c1fa04197e18c319b99c5aee115cfafa57a04bc40e701bbad2481a"
+    },
+    {
+      "source": "photo/scen20.png",
+      "sourceHash": "b3635152004b69c88a4f99c9f44d9f1b8dafd61b0e805b33e56dd1be23b2dda2",
+      "output": "assets/story/scen20.webp",
+      "bytesOriginal": 2845107,
+      "bytes": 359952,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "6f0c5cd3efa0ad97aa71ad221af35a1ea3d1dbd633bbfd7ba2f99a8d5ca5f7e6"
+    },
+    {
+      "source": "photo/scen21.png",
+      "sourceHash": "a483a418b3478ef2d9e674e19bc4c7d5e22f3c194c42b32df0b53cbadb989962",
+      "output": "assets/story/scen21.webp",
+      "bytesOriginal": 2718117,
+      "bytes": 301374,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "949765ae700ddcb7103293b3126264cc317f63ba7f4f57152af5fd46867942e3"
+    },
+    {
+      "source": "photo/scen22.png",
+      "sourceHash": "64f6910309cc58354c26b787c12307abf853cfe48d2699caffe0c5dd1b2645a1",
+      "output": "assets/story/scen22.webp",
+      "bytesOriginal": 2651053,
+      "bytes": 284126,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "69888111423bc4b7f8fc43936d70e284e7ae9f63d271f50473b74c24fb3a9eeb"
+    },
+    {
+      "source": "photo/scen23.png",
+      "sourceHash": "5a9e54e868f821592bd7584f23f76e33378fda3427e02b01d3d3ba48c4ab2420",
+      "output": "assets/story/scen23.webp",
+      "bytesOriginal": 2503841,
+      "bytes": 254012,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "82e345596baeeca3d05d60008416961f13622ac20eaebc4d7ecd9535198fe5ee"
+    },
+    {
+      "source": "photo/scen24.png",
+      "sourceHash": "049c94db9e6d0fd5d496e2be81abde2fd149d210b1f884d813ea0717cc29835c",
+      "output": "assets/story/scen24.webp",
+      "bytesOriginal": 2819768,
+      "bytes": 333362,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "f1c321611f04a61d8ca2cb8cfccd02d11fbdd6fd2ae2e07b50b6b533061a97ee"
+    },
+    {
+      "source": "photo/scen25.png",
+      "sourceHash": "f8231477708173ac303849c20a9c7f25bbcb98a3cb225a8089a544eed8fc092c",
+      "output": "assets/story/scen25.webp",
+      "bytesOriginal": 3220716,
+      "bytes": 387214,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "38c381f48d41e89064a941e5691b14ac873783da5aa5bfb3b6f317064d2053b3"
+    },
+    {
+      "source": "photo/scen26.png",
+      "sourceHash": "cf5aa48cf0ab9b46b904b8eb7a75d43f05ebae923fb238ad34478937a73bc49e",
+      "output": "assets/story/scen26.webp",
+      "bytesOriginal": 3109385,
+      "bytes": 390786,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "0f29af8db521c60f21aa5fdeb320560e71ac23b4db28b1da2a9e62737ba168e2"
+    },
+    {
+      "source": "photo/scen27.png",
+      "sourceHash": "773e0364f05f44eb902de28bdeaa70b30b4a1c4e7b175b9950a019db5c1bc033",
+      "output": "assets/story/scen27.webp",
+      "bytesOriginal": 2744677,
+      "bytes": 333892,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "bbc90bead53e5380d348f6eaed10bc35f247d98ccfd6c4a9ad55b35898a3eec0"
+    },
+    {
+      "source": "photo/scen28.png",
+      "sourceHash": "5520ef64c0b7b8f1e57552b2400d93cf3e99272d1b9bdcec12700b2faadf95cf",
+      "output": "assets/story/scen28.webp",
+      "bytesOriginal": 3143147,
+      "bytes": 408026,
+      "width": 1672,
+      "height": 941,
+      "outputHash": "a72973cc52bfab9f4a8cb1f96dbbbf718fbc9ec29b2899e3af3ebab26e1a4745"
     },
     {
       "source": "photo/scen3.png",

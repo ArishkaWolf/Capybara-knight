@@ -7,12 +7,19 @@ const story = validateStory(JSON.parse(await readFile(new URL('public/story.json
 await prepareImages(story);
 await prepareBranding();
 // A readable review copy, regenerated from the canonical JSON on every build.
-const clueNames = { fur: 'шерсть', paws: 'отпечатки лап', quill: 'игла дикобраза' };
-const describeCondition = (condition) => condition ? ' *(' + [
+const clueNames = { fur: 'шерсть', paws: 'отпечатки лап', quill: 'игла дикобраза', wolfDisguise: 'волчий плащ', falsePaw: 'накладка для следов', tavernTag: 'бирка таверны', marketInvoice: 'накладная Агаты', martaLedger: 'книга закупок Марты', stolenBox: 'шкатулка с тайником', gangLedger: 'книга расчётов сообщников' };
+const flagNames = { sharedClues: 'Игнату рассказали об уликах', wolvesTrusted: 'волки доверяют Капибаре', witnessVisited: 'опрошены пострадавшие', marketVisited: 'посещён рынок', millVisited: 'посещена мельница', witnessSounds: 'Савелий вспомнил звуки', marketWarned: 'Агата предупреждена', helpedTikhon: 'Капибара помог Тихону', tikhonTrusted: 'Тихону предложена помощь', martaAccused: 'Марту обвинили', martaTrusted: 'Марта доверяет Капибаре', recordsCompared: 'счета сверены с поставщиком', planWatch: 'выбрано наблюдение', planTikhon: 'выбрана помощь Тихона', planAudit: 'выбрана проверка поставки', tikhonCooperating: 'Тихон сотрудничает', caseProved: 'вина Игната доказана', stayedToHelp: 'Капибара остался помочь' };
+const conditionText = (condition) => [
   ...(condition.found?.length ? [`найдено: ${condition.found.map((id) => clueNames[id]).join(', ')}`] : []),
   ...(condition.missing?.length ? [`не найдено: ${condition.missing.map((id) => clueNames[id]).join(', ')}`] : []),
-  ...(condition.talkedToPorcupine === undefined ? [] : [condition.talkedToPorcupine ? 'после разговора с Дикобразом' : 'сразу к волкам']),
-].join('; ') + ')*' : '';
+  ...(condition.talkedToPorcupine === undefined ? [] : [condition.talkedToPorcupine ? 'после разговора с Игнатом' : 'сразу к волкам']),
+  ...(condition.flags?.length ? [condition.flags.map((id) => flagNames[id]).join('; ')] : []),
+  ...(condition.notFlags?.length ? [`ещё не выполнено: ${condition.notFlags.map((id) => flagNames[id]).join(', ')}`] : []),
+  ...(condition.atLeast ? [`не менее ${condition.atLeast.count} из: ${condition.atLeast.flags.map((id) => flagNames[id]).join(', ')}`] : []),
+  ...(condition.any ? [`хотя бы одно: ${condition.any.map((part) => `(${conditionText(part)})`).join(' или ')}`] : []),
+  ...(condition.not ? [`не выполнено условие (${conditionText(condition.not)})`] : []),
+].join('; ');
+const describeCondition = (condition) => condition ? ` *(${conditionText(condition)})*` : '';
 const manuscript = [
   `# ${story.title}`,
   '',
@@ -32,12 +39,13 @@ const manuscript = [
     ] : []),
     ...(scene.interaction ? [
       '**Обязательный интерактив**', '',
-      `Нажать на предмет «${scene.interaction.label}» → ${scene.next}. До нажатия обычный переход заблокирован. В следующем кадре нужно прочитать все реплики записки.`, '',
+      `Нажать на предмет «${scene.interaction.label}» → ${scene.next}. До нажатия обычный переход заблокирован.`, '',
     ] : []),
     ...(scene.choices ? ['**Выбор игрока**', '', ...scene.choices.flatMap((choice) => [
-      `- ${choice.label} → ${choice.next ?? 'конец игры'}`, '',
+      `- ${choice.label}${describeCondition(choice.condition)} → ${choice.next ?? 'конец игры'}`, '',
       ...(choice.ending ? [`  **${choice.ending.title}.** ${choice.ending.text}`, ''] : []),
     ])] : []),
+    ...(scene.routes ? ['**Условный переход**', '', ...scene.routes.map((route) => `- ${conditionText(route.condition)} → ${route.next}`), `- В остальных случаях → ${scene.next}.`, ''] : []),
   ]),
 ];
 await writeFile(new URL('Сценарий.md', root), manuscript.join('\n') + '\n', 'utf8');

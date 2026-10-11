@@ -6,8 +6,8 @@ const story = validateStory(JSON.parse(await readFile(new URL('../public/story.j
 const sceneProgress = (id, line = -1) => ({ ...newProgress(story), sceneId: id, line });
 const lastLine = (id) => story.scenes.find((scene) => scene.id === id).dialogues.length - 1;
 
-test('All 46 scenes load the current images, including renamed files', async () => {
-  assert.equal(story.scenes.length, 46);
+test('All scenes load the current images, including the continuation and renamed files', async () => {
+  assert.equal(story.scenes.length, 96);
   for (const scene of story.scenes) assert.ok((await readFile(new URL(`../${scene.image}`, import.meta.url))).length > 0);
   assert.equal(story.scenes[1].image, 'photo/scen2.png');
   assert.equal(story.scenes.find((scene) => scene.id === 'scen7-5').image, 'photo/сцена7-5.png');
@@ -68,15 +68,17 @@ test('Refusal ends game and cannot advance; investigation continues', () => {
   assert.equal(accepted.sceneId, 'scen8'); assert.equal(accepted.state.helping, true); assert.equal(accepted.state.courage, 1);
 });
 
-test('Playable night route reads the note and reaches the new content boundary', () => {
+test('Playable night route reads the note and reaches the continuation without an ending', () => {
   let progress = newProgress(story);
   const visited = new Set();
   for (let i = 0; i < 200 && !progress.ending; i++) {
     visited.add(progress.sceneId);
+    if (progress.sceneId === 'scen12-2' && progress.line === lastLine('scen12-2')) break;
     const scene = story.scenes.find((s) => s.id === progress.sceneId);
     progress = progress.interacting ? interact(story, progress, 'note') : progress.searching ? finishSearch(story, progress) : scene.choices?.length && progress.line === sceneLines(scene, progress.state).length - 1 ? choose(story, progress, scene.choices.at(-1).id) : advance(story, progress);
   }
-  assert.equal(visited.size, 36); assert.equal(progress.sceneId, 'scen12-2'); assert.equal(progress.ending.title, 'Продолжение следует');
+  assert.equal(visited.size, 36); assert.equal(progress.sceneId, 'scen12-2'); assert.equal(progress.ending, null);
+  assert.equal(advance(story, progress).sceneId, 'scen12-3');
   assert.ok(visited.has('scen9-1')); assert.ok(visited.has('scen9-2')); assert.ok(!visited.has('scen9-2_2'));
 });
 

@@ -1,28 +1,42 @@
-export const EVIDENCE_IDS = ['fur', 'paws', 'quill'];
-export const initialState = () => ({ drink: null, courage: 0, clues: 0, helping: false, evidence: [], talkedToPorcupine: false });
+export const EVIDENCE_IDS = ['fur', 'paws', 'quill', 'wolfDisguise', 'falsePaw', 'tavernTag', 'marketInvoice', 'martaLedger', 'stolenBox', 'gangLedger'];
+export const FLAG_IDS = ['sharedClues', 'wolvesTrusted', 'witnessVisited', 'marketVisited', 'millVisited', 'witnessSounds', 'marketWarned', 'helpedTikhon', 'tikhonTrusted', 'martaAccused', 'martaTrusted', 'recordsCompared', 'planWatch', 'planTikhon', 'planAudit', 'tikhonCooperating', 'caseProved', 'stayedToHelp'];
+export const initialState = () => ({ drink: null, courage: 0, clues: 0, helping: false, evidence: [], talkedToPorcupine: false, flags: [] });
 const continuationEnding = () => ({ title: 'Продолжение следует', text: 'На этом пока всё.' });
 const record = (value) => value && typeof value === 'object' && !Array.isArray(value);
 const words = (value) => typeof value === 'string' && value.trim().length > 0;
 const validEvidence = (items) => Array.isArray(items) && new Set(items).size === items.length && items.every((id) => EVIDENCE_IDS.includes(id));
-const validState = (state) => record(state) && Object.keys(state).every((key) => key in initialState()) && (state.drink === null || words(state.drink)) && Number.isInteger(state.courage) && state.courage >= 0 && Number.isInteger(state.clues) && state.clues >= 0 && typeof state.helping === 'boolean' && (state.evidence === undefined || validEvidence(state.evidence)) && (state.talkedToPorcupine === undefined || typeof state.talkedToPorcupine === 'boolean');
+const validFlags = (items) => Array.isArray(items) && new Set(items).size === items.length && items.every((id) => FLAG_IDS.includes(id));
+const validState = (state) => record(state) && Object.keys(state).every((key) => key in initialState()) && (state.drink === null || words(state.drink)) && Number.isInteger(state.courage) && state.courage >= 0 && Number.isInteger(state.clues) && state.clues >= 0 && typeof state.helping === 'boolean' && (state.evidence === undefined || validEvidence(state.evidence)) && (state.talkedToPorcupine === undefined || typeof state.talkedToPorcupine === 'boolean') && (state.flags === undefined || validFlags(state.flags));
 const validEnding = (ending) => record(ending) && words(ending.title) && words(ending.text);
-const validCondition = (condition) => condition === undefined || (record(condition) && Object.keys(condition).every((key) => ['found', 'missing', 'talkedToPorcupine'].includes(key)) && (condition.found === undefined || validEvidence(condition.found)) && (condition.missing === undefined || validEvidence(condition.missing)) && (condition.talkedToPorcupine === undefined || typeof condition.talkedToPorcupine === 'boolean') && !(condition.found ?? []).some((id) => (condition.missing ?? []).includes(id)));
+const validCondition = (condition, depth = 0) => condition === undefined || (depth < 8 && record(condition) && Object.keys(condition).every((key) => ['found', 'missing', 'talkedToPorcupine', 'flags', 'notFlags', 'atLeast', 'any', 'not'].includes(key)) && (condition.found === undefined || validEvidence(condition.found)) && (condition.missing === undefined || validEvidence(condition.missing)) && (condition.talkedToPorcupine === undefined || typeof condition.talkedToPorcupine === 'boolean') && !(condition.found ?? []).some((id) => (condition.missing ?? []).includes(id)) && (condition.flags === undefined || validFlags(condition.flags)) && (condition.notFlags === undefined || validFlags(condition.notFlags)) && !(condition.flags ?? []).some((id) => (condition.notFlags ?? []).includes(id)) && (condition.atLeast === undefined || (record(condition.atLeast) && Object.keys(condition.atLeast).every((key) => ['flags', 'count'].includes(key)) && validFlags(condition.atLeast.flags) && Number.isInteger(condition.atLeast.count) && condition.atLeast.count > 0 && condition.atLeast.count <= condition.atLeast.flags.length)) && (condition.any === undefined || (Array.isArray(condition.any) && condition.any.length > 0 && condition.any.every((part) => record(part) && validCondition(part, depth + 1)))) && (condition.not === undefined || (record(condition.not) && validCondition(condition.not, depth + 1))));
+const usesInvestigation = (condition) => condition && (['flags', 'notFlags', 'atLeast', 'any', 'not'].some((key) => condition[key] !== undefined) || [...(condition.found ?? []), ...(condition.missing ?? [])].some((id) => !['fur', 'paws', 'quill'].includes(id)));
 const validLine = (line) => record(line) && words(line.speaker) && words(line.text) && validCondition(line.condition);
 const validImageSize = (size) => record(size) && Number.isFinite(size.width) && size.width > 0 && Number.isFinite(size.height) && size.height > 0;
 const validRect = (rect) => record(rect) && ['x', 'y', 'width', 'height'].every((key) => Number.isFinite(rect[key])) && rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0 && rect.x + rect.width <= 1 && rect.y + rect.height <= 1;
 
 export function matchesCondition(condition, state) {
   const found = state.evidence ?? [];
-  return !condition || ((condition.found ?? []).every((id) => found.includes(id)) && (condition.missing ?? []).every((id) => !found.includes(id)) && (condition.talkedToPorcupine === undefined || condition.talkedToPorcupine === (state.talkedToPorcupine ?? false)));
+  const flags = state.flags ?? [];
+  return !condition || ((condition.found ?? []).every((id) => found.includes(id)) && (condition.missing ?? []).every((id) => !found.includes(id)) && (condition.talkedToPorcupine === undefined || condition.talkedToPorcupine === (state.talkedToPorcupine ?? false)) && (condition.flags ?? []).every((id) => flags.includes(id)) && (condition.notFlags ?? []).every((id) => !flags.includes(id)) && (!condition.atLeast || condition.atLeast.flags.filter((id) => flags.includes(id)).length >= condition.atLeast.count) && (!condition.any || condition.any.some((part) => matchesCondition(part, state))) && (!condition.not || !matchesCondition(condition.not, state)));
 }
 
 export function sceneLines(scene, state) {
   return scene.dialogues.filter((line) => matchesCondition(line.condition, state));
 }
 
+/** @param {import('./types').Scene} scene @param {import('./types').GameState} state @returns {import('./types').Choice[]} */
+export function sceneChoices(scene, state) {
+  return (scene.choices ?? []).filter((choice) => matchesCondition(choice.condition, state));
+}
+
+/** @param {import('./types').Scene} scene @param {import('./types').GameState} state */
+export function nextScene(scene, state) {
+  return scene.routes?.find((route) => matchesCondition(route.condition, state))?.next ?? scene.next;
+}
+
 // Reject broken deployments before replacing the current playable story.
 export function validateStory(value) {
-  if (!record(value) || ![1, 2, 3, 4].includes(value.schemaVersion) || !words(value.version) || !words(value.title) || !Array.isArray(value.scenes) || !value.scenes.length) throw new Error('Неподдерживаемый формат сюжета');
+  if (!record(value) || ![1, 2, 3, 4, 5].includes(value.schemaVersion) || !words(value.version) || !words(value.title) || !Array.isArray(value.scenes) || !value.scenes.length) throw new Error('Неподдерживаемый формат сюжета');
   const ids = new Set(value.scenes.map((scene) => scene?.id));
   if (ids.size !== value.scenes.length || !ids.has(value.startScene)) throw new Error('Некорректные идентификаторы сцен');
   const target = (id) => id === null || ids.has(id);
@@ -30,23 +44,29 @@ export function validateStory(value) {
     if (!record(scene) || !words(scene.id) || !words(scene.chapter) || !words(scene.image) || !/^photo\/[\p{L}\p{N}_-]+\.(png|jpe?g|webp)$/u.test(scene.image) || !target(scene.next) || !Array.isArray(scene.dialogues)) throw new Error('Некорректная сцена');
     if (scene.dialogues.some((line) => !validLine(line))) throw new Error('Некорректный диалог');
     if (value.schemaVersion < 4 && scene.dialogues.some((line) => line.condition?.talkedToPorcupine !== undefined)) throw new Error('Формат не поддерживает условия разговора');
+    if (value.schemaVersion < 5 && (scene.routes !== undefined || scene.dialogues.some((line) => usesInvestigation(line.condition)))) throw new Error('Формат не поддерживает условия расследования');
+    if (scene.routes !== undefined && (!Array.isArray(scene.routes) || !scene.routes.length || scene.routes.some((route) => !record(route) || !record(route.condition) || !validCondition(route.condition) || !words(route.next) || !ids.has(route.next)))) throw new Error('Некорректный условный маршрут');
     if (scene.search !== undefined) {
       const search = scene.search;
       if (value.schemaVersion < 2 || !record(search) || scene.choices || !words(search.finishLabel) || !validImageSize(search.imageSize) || !Array.isArray(search.hotspots) || !search.hotspots.length || new Set(search.hotspots.map((item) => item?.id)).size !== search.hotspots.length) throw new Error('Некорректная сцена осмотра');
       for (const hotspot of search.hotspots) {
         const rect = hotspot?.rect;
         if (!record(hotspot) || !EVIDENCE_IDS.includes(hotspot.id) || !words(hotspot.label) || !validRect(rect) || !Array.isArray(hotspot.dialogues) || !hotspot.dialogues.length || hotspot.dialogues.some((line) => !validLine(line) || line.condition)) throw new Error('Некорректная область поиска');
+        if (value.schemaVersion < 5 && !['fur', 'paws', 'quill'].includes(hotspot.id)) throw new Error('Формат не поддерживает новые улики');
       }
+      if (search.title !== undefined && !words(search.title)) throw new Error('Некорректное название осмотра');
     }
     if (scene.interaction !== undefined) {
       const interaction = scene.interaction;
       if (value.schemaVersion < 3 || scene.search || scene.choices || scene.next === null || !record(interaction) || !words(interaction.id) || !words(interaction.label) || !validImageSize(interaction.imageSize) || !validRect(interaction.rect)) throw new Error('Некорректный обязательный предмет');
+      if (['title', 'hint'].some((key) => interaction[key] !== undefined && !words(interaction[key]))) throw new Error('Некорректная подсказка предмета');
     }
     if (scene.choices !== undefined) {
       if (!Array.isArray(scene.choices) || !scene.choices.length || new Set(scene.choices.map((c) => c?.id)).size !== scene.choices.length) throw new Error('Некорректные варианты выбора');
       for (const choice of scene.choices) {
-        if (!record(choice) || !words(choice.id) || !words(choice.label) || !target(choice.next) || !record(choice.effects) || !validState({ ...initialState(), ...choice.effects }) || Object.keys(choice.effects).some((key) => !(key in initialState())) || (choice.ending !== undefined && (!validEnding(choice.ending) || choice.next !== null))) throw new Error('Некорректный вариант выбора');
+        if (!record(choice) || !words(choice.id) || !words(choice.label) || !target(choice.next) || !record(choice.effects) || !validState({ ...initialState(), ...choice.effects }) || Object.keys(choice.effects).some((key) => !(key in initialState())) || !validCondition(choice.condition) || (choice.ending !== undefined && (!validEnding(choice.ending) || choice.next !== null))) throw new Error('Некорректный вариант выбора');
         if (value.schemaVersion < 4 && choice.effects.talkedToPorcupine !== undefined) throw new Error('Формат не поддерживает состояние разговора');
+        if (value.schemaVersion < 5 && (choice.condition !== undefined || choice.effects.flags !== undefined || (choice.effects.evidence ?? []).some((id) => !['fur', 'paws', 'quill'].includes(id)))) throw new Error('Формат не поддерживает выборы расследования');
       }
     }
   }
@@ -80,8 +100,8 @@ export function advance(story, progress) {
   if (progress.line < sceneLines(scene, progress.state).length - 1) return { ...progress, line: progress.line + 1 };
   if (scene.search) return { ...progress, line: -1, searching: true };
   if (scene.interaction) return { ...progress, line: -1, interacting: true };
-  if (scene.choices?.length) return progress;
-  return goTo(story, progress, scene.next);
+  if (sceneChoices(scene, progress.state).length) return progress;
+  return goTo(story, progress, nextScene(scene, progress.state));
 }
 
 function goTo(story, progress, next, ending) {
@@ -94,11 +114,11 @@ export function choose(story, progress, choiceId) {
   if (progress.ending) return progress;
   const scene = story.scenes.find((item) => item.id === progress.sceneId);
   if (!scene || progress.searching || progress.interacting || progress.line < sceneLines(scene, progress.state).length - 1) return progress;
-  const choice = scene.choices?.find((item) => item.id === choiceId);
+  const choice = sceneChoices(scene, progress.state).find((item) => item.id === choiceId);
   if (!choice) return progress;
   const state = { ...progress.state };
   for (const [key, value] of Object.entries(choice.effects)) {
-    state[key] = typeof value === 'number' ? state[key] + value : value;
+    state[key] = Array.isArray(value) ? [...new Set([...(state[key] ?? []), ...value])] : typeof value === 'number' ? state[key] + value : value;
   }
   return goTo(story, { ...progress, state }, choice.next, choice.ending);
 }
@@ -115,7 +135,7 @@ export function inspect(story, progress, clueId) {
 export function finishSearch(story, progress) {
   if (progress.ending || !progress.searching) return progress;
   const scene = story.scenes.find((item) => item.id === progress.sceneId);
-  return scene?.search ? goTo(story, progress, scene.next) : progress;
+  return scene?.search ? goTo(story, progress, nextScene(scene, progress.state)) : progress;
 }
 
 export function interact(story, progress, itemId) {

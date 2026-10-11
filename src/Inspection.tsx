@@ -21,7 +21,7 @@ export function Inspection({ search, evidence, width, height, insets, busy, onIn
       </Pressable>;
     })}
     <View style={[styles.hud, { top: Math.max(76, insets.top + 66), left: Math.max(20, insets.left + 14), maxWidth: width * 0.43 }, compact && { padding: 8 }]}>
-      <Text style={styles.heading}>Осмотри комнату</Text>
+      <Text style={styles.heading}>{search.title ?? 'Осмотри комнату'}</Text>
       {!compact && <Text style={styles.hint}>Нажимай на предметы</Text>}
       {foundItems.length > 0 && <Text style={styles.inventory}>{foundItems.map((item) => item.label).join(' · ')}</Text>}
       <Pressable accessibilityRole="button" accessibilityLabel={hints ? 'Скрыть подсказку' : 'Подсказка: показать области поиска'} disabled={busy} onPress={() => setHints((value) => !value)} style={styles.hintButton}><Text style={styles.hintAction}>{hints ? 'Скрыть подсказку' : 'Подсказка'}</Text></Pressable>

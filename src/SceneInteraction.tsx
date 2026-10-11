@@ -11,8 +11,8 @@ export function SceneInteraction({ interaction, width, height, insets, onInterac
   const frame = imageFrame(interaction.imageSize, { width, height }, 'contain', insets);
   return <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
     <View pointerEvents="none" style={[styles.hud, { top: Math.max(76, insets.top + 66), left: Math.max(20, insets.left + 14), maxWidth: width * 0.6 }]}>
-      <Text style={styles.heading}>Записка на стойке</Text>
-      <Text style={styles.hint}>Нажми на неё, чтобы прочитать</Text>
+      <Text style={styles.heading}>{interaction.title ?? 'Записка на стойке'}</Text>
+      <Text style={styles.hint}>{interaction.hint ?? 'Нажми на неё, чтобы прочитать'}</Text>
     </View>
     <Pressable accessibilityRole="button" accessibilityLabel={interaction.label} onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)} onPress={() => onInteract(interaction.id)} style={({ pressed }) => [styles.hotspot, hotspotBox(interaction.rect, frame, { width, height }, 48, insets), (hovered || pressed) && styles.highlight]} />
   </View>;
