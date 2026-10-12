@@ -1,5 +1,5 @@
 export type EvidenceId = 'fur' | 'paws' | 'quill' | 'wolfDisguise' | 'falsePaw' | 'tavernTag' | 'marketInvoice' | 'martaLedger' | 'stolenBox' | 'gangLedger';
-export type FlagId = 'sharedClues' | 'wolvesTrusted' | 'witnessVisited' | 'marketVisited' | 'millVisited' | 'witnessSounds' | 'marketWarned' | 'helpedTikhon' | 'tikhonTrusted' | 'martaAccused' | 'martaTrusted' | 'recordsCompared' | 'planWatch' | 'planTikhon' | 'planAudit' | 'tikhonCooperating' | 'caseProved' | 'stayedToHelp';
+export type FlagId = 'sharedClues' | 'wolvesTrusted' | 'witnessVisited' | 'marketVisited' | 'millVisited' | 'witnessSounds' | 'marketWarned' | 'helpedTikhon' | 'tikhonTrusted' | 'martaAccused' | 'martaTrusted' | 'recordsCompared' | 'planWatch' | 'planTikhon' | 'planAudit' | 'tikhonCooperating' | 'caseProved' | 'stayedToHelp' | 'marketDeliveryKnown' | 'salesRecordsRecovered' | 'cargoSecured' | 'cargoLost';
 export type GameState = { drink: string | null; courage: number; clues: number; helping: boolean; evidence: EvidenceId[]; talkedToPorcupine: boolean; flags: FlagId[] };
 export type Condition = { found?: EvidenceId[]; missing?: EvidenceId[]; talkedToPorcupine?: boolean; flags?: FlagId[]; notFlags?: FlagId[]; atLeast?: { flags: FlagId[]; count: number }; any?: Condition[]; not?: Condition };
 export type DialogueLine = { speaker: string; text: string; condition?: Condition };

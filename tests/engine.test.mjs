@@ -7,7 +7,7 @@ const sceneProgress = (id, line = -1) => ({ ...newProgress(story), sceneId: id, 
 const lastLine = (id) => story.scenes.find((scene) => scene.id === id).dialogues.length - 1;
 
 test('All scenes load the current images, including the continuation and renamed files', async () => {
-  assert.equal(story.scenes.length, 96);
+  assert.equal(story.scenes.length, 106);
   for (const scene of story.scenes) assert.ok((await readFile(new URL(`../${scene.image}`, import.meta.url))).length > 0);
   assert.equal(story.scenes[1].image, 'photo/scen2.png');
   assert.equal(story.scenes.find((scene) => scene.id === 'scen7-5').image, 'photo/сцена7-5.png');

@@ -1,5 +1,5 @@
 export const EVIDENCE_IDS = ['fur', 'paws', 'quill', 'wolfDisguise', 'falsePaw', 'tavernTag', 'marketInvoice', 'martaLedger', 'stolenBox', 'gangLedger'];
-export const FLAG_IDS = ['sharedClues', 'wolvesTrusted', 'witnessVisited', 'marketVisited', 'millVisited', 'witnessSounds', 'marketWarned', 'helpedTikhon', 'tikhonTrusted', 'martaAccused', 'martaTrusted', 'recordsCompared', 'planWatch', 'planTikhon', 'planAudit', 'tikhonCooperating', 'caseProved', 'stayedToHelp'];
+export const FLAG_IDS = ['sharedClues', 'wolvesTrusted', 'witnessVisited', 'marketVisited', 'millVisited', 'witnessSounds', 'marketWarned', 'helpedTikhon', 'tikhonTrusted', 'martaAccused', 'martaTrusted', 'recordsCompared', 'planWatch', 'planTikhon', 'planAudit', 'tikhonCooperating', 'caseProved', 'stayedToHelp', 'marketDeliveryKnown', 'salesRecordsRecovered', 'cargoSecured', 'cargoLost'];
 export const initialState = () => ({ drink: null, courage: 0, clues: 0, helping: false, evidence: [], talkedToPorcupine: false, flags: [] });
 const continuationEnding = () => ({ title: 'Продолжение следует', text: 'На этом пока всё.' });
 const record = (value) => value && typeof value === 'object' && !Array.isArray(value);
@@ -86,6 +86,9 @@ export function reconcileProgress(story, saved) {
   if (!scene) return { progress: newProgress(story), reset: true };
   const changed = saved.version !== story.version;
   const state = { ...initialState(), ...saved.state };
+  // Earlier releases resolved the night without explicit cargo/archive decisions.
+  const legacyNightResolved = ['2026-10-11.1', '2026-10-12.1'].includes(saved.version) && ['scen23-2', 'scen24', 'scen24-1', 'scen24-2', 'scen24-3', 'scen24-4', 'scen24-5', 'scen25', 'scen26', 'scen27', 'scen27-1', 'scen28'].includes(scene.id);
+  if (changed && legacyNightResolved) state.flags = [...new Set([...state.flags, 'cargoSecured', ...(state.flags.includes('tikhonCooperating') && state.evidence.includes('gangLedger') ? ['salesRecordsRecovered'] : [])])];
   const ending = changed ? null : saved.ending && scene.next === null && !scene.choices ? continuationEnding() : saved.ending;
   const progress = { version: story.version, sceneId: scene.id, line: changed ? -1 : Math.min(saved.line, sceneLines(scene, state).length - 1), state, ending };
   if (!changed && saved.searching === true && scene.search && !progress.ending) progress.searching = true;

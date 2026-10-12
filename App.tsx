@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import { SceneBackdrop } from './src/SceneBackdrop';
 import { Dialogue } from './src/Dialogue';
 import { Inspection } from './src/Inspection';
 import { SceneInteraction } from './src/SceneInteraction';
@@ -28,7 +29,7 @@ function Novel() {
   const { width, height } = layout ?? windowSize;
   const insets = useSafeAreaInsets();
   const compact = height < 600 || width < 900;
-  const portrait = height > width;
+  const portrait = windowSize.height > windowSize.width;
   const shortScreen = height < 500 && !portrait;
   const [screen, setScreen] = useState<'profiles' | 'home' | 'game'>('profiles');
   const choosingPlayer = screen === 'profiles' || !novel.activeProfile;
@@ -39,6 +40,7 @@ function Novel() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [loadedImageKey, setLoadedImageKey] = useState('');
   const [failedImageKey, setFailedImageKey] = useState('');
+  const [slowImage, setSlowImage] = useState(false);
   const [retry, setRetry] = useState(0);
   const [fallbackKey, setFallbackKey] = useState('');
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
@@ -48,8 +50,9 @@ function Novel() {
   const background = choosingPlayer || screen === 'home' ? pack.story.scenes.find((item) => item.id === pack.story.startScene)! : scene;
   const uri = imageUrl(pack, background.image);
   const imageKey = `${background.image}:${pack.story.version}:${retry}:${uri}`;
-  const imageReady = loadedImageKey === imageKey;
-  const imageError = failedImageKey === imageKey;
+  const renderKey = `${imageKey}:${fallbackKey === imageKey}:${background.search || background.interaction ? 'contain' : 'cover'}`;
+  const imageReady = loadedImageKey === renderKey;
+  const imageError = failedImageKey === renderKey;
   const source = uri && fallbackKey !== imageKey ? { uri: `${uri}&retry=${retry}` } : bundledImages[background.image];
   const interactiveBackground = Boolean(background.search || background.interaction);
   const lines = sceneLines(scene, progress.state);
@@ -60,6 +63,13 @@ function Novel() {
   const sceneIndex = pack.story.scenes.indexOf(scene);
 
   useEffect(() => {
+    setSlowImage(false);
+    if (imageReady || imageError) return;
+    const timer = setTimeout(() => setSlowImage(true), 850);
+    return () => clearTimeout(timer);
+  }, [renderKey, imageReady, imageError]);
+
+  useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
     const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReducedMotion);
     const activity = AppState.addEventListener('change', (state) => setForeground(state === 'active'));
@@ -68,13 +78,14 @@ function Novel() {
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const rotation = screen === 'game' ? ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE) : ScreenOrientation.unlockAsync();
-    void rotation.catch(() => undefined);
-  }, [screen]);
+    // Let the screen rotate so the same portrait guard also works in native apps.
+    void ScreenOrientation.unlockAsync().catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (portrait) return true;
       if (menu) { setMenu(false); setConfirmRestart(false); return true; }
       if (screen === 'game') { setMenu(true); return true; }
       if (screen === 'home') { showPlayers(); return true; }
@@ -120,7 +131,7 @@ function Novel() {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const keyDown = (event: KeyboardEvent) => {
-      if (event.repeat || (event.target instanceof HTMLElement && event.target.closest('[role="button"], button, input, textarea'))) return;
+      if (portrait || event.repeat || (event.target instanceof HTMLElement && event.target.closest('[role="button"], button, input, textarea'))) return;
       if (['ArrowRight', ' ', 'Enter'].includes(event.key)) { event.preventDefault(); next(); }
       if (event.key === 'Escape' && screen === 'game') setMenu((current) => !current);
     };
@@ -152,7 +163,7 @@ function Novel() {
   }
 
   function inspectClue(id: EvidenceId) {
-    if (!imageReady || !progress.searching || activeInspection) return;
+    if (portrait || menu || !imageReady || !progress.searching || activeInspection) return;
     novel.change(inspect(pack.story, progress, id) as Progress);
     setInspection({ key: `${pack.story.version}:${scene.id}`, id, line: 0 });
     setComplete(false); setTyping(!reducedMotion);
@@ -160,15 +171,17 @@ function Novel() {
 
   function closeInspection() { setInspection(null); setComplete(false); setTyping(false); }
 
-  const choices = showChoices ? <View style={styles.choices}>{availableChoices.map((choice, i) => <Pressable key={choice.id} accessibilityRole="button" accessibilityLabel={choice.label} onPress={() => { if (imageReady) move(choose(pack.story, progress, choice.id) as Progress); }} style={({ pressed }) => [styles.choice, availableChoices.length > 2 && { flexBasis: width < 760 ? '45%' : '30%' }, pressed && { backgroundColor: '#eadbc5' }]}><Text style={styles.choiceNumber}>{String(i + 1).padStart(2, '0')}</Text><Text style={styles.choiceText}>{choice.label}</Text><Text style={styles.choiceArrow}>→</Text></Pressable>)}</View> : null;
+  const choices = showChoices ? <View style={styles.choices}>{availableChoices.map((choice, i) => <Pressable key={choice.id} accessibilityRole="button" accessibilityLabel={choice.label} onPress={() => { if (imageReady && !portrait && !menu) move(choose(pack.story, progress, choice.id) as Progress); }} style={({ pressed }) => [styles.choice, availableChoices.length > 2 && { flexBasis: width < 760 ? '45%' : '30%' }, pressed && { backgroundColor: '#eadbc5' }]}><Text style={styles.choiceNumber}>{String(i + 1).padStart(2, '0')}</Text><Text style={styles.choiceText}>{choice.label}</Text><Text style={styles.choiceArrow}>→</Text></Pressable>)}</View> : null;
   const playerSwitcher = <Pressable accessibilityRole="button" accessibilityLabel="Сменить игрока" onPress={showPlayers} style={[styles.playerSwitch, !portrait && { position: 'absolute', bottom: Math.max(18, insets.bottom + 12), left: Math.max(24, insets.left + 18), maxWidth: width * 0.4 }]}><Text numberOfLines={2} style={styles.currentPlayer}>Играет: {novel.activeProfile?.name}</Text><Text style={styles.switchLabel}>Сменить игрока →</Text></Pressable>;
 
   return <View style={styles.root} onLayout={({ nativeEvent }) => setLayout({ width: nativeEvent.layout.width, height: nativeEvent.layout.height })}>
     <StatusBar hidden />
-    <Image key={`${imageKey}:${fallbackKey === imageKey}`} source={source} contentFit={interactiveBackground ? 'contain' : 'cover'} cachePolicy="disk" transition={reducedMotion ? 0 : 300} style={[StyleSheet.absoluteFill, interactiveBackground && { top: insets.top, bottom: insets.bottom, left: insets.left, right: insets.right }]} onLoad={() => setLoadedImageKey(imageKey)} onError={() => {
+    <SceneBackdrop frame={{ id: renderKey, source, fit: interactiveBackground ? 'contain' : 'cover', insets }} reducedMotion={reducedMotion} onReady={setLoadedImageKey} onError={(id) => {
+      if (id !== renderKey) return;
       if (uri && fallbackKey !== imageKey && bundledImages[background.image] && pack.story.version === bundledPackage.story.version) setFallbackKey(imageKey);
-      else setFailedImageKey(imageKey);
-    }} accessible={false} />
+      else setFailedImageKey(renderKey);
+    }} />
+    {!portrait && <>
     {choosingPlayer ? <PlayerSelect players={novel.profiles} story={pack.story} ready={novel.ready} compact={compact} topInset={insets.top} bottomInset={insets.bottom} leftInset={insets.left} rightInset={insets.right} notice={novel.notice} onSelect={selectPlayer} onCreate={(name) => { novel.createPlayer(name); setScreen('home'); }} onRename={novel.changePlayerName} /> : screen === 'home' ? <>
       <View style={styles.homeShade} />
       <ScrollView style={[styles.homeScroll, { right: portrait ? insets.right + 24 : Math.max(insets.right + 24, width * 0.07), width: portrait ? width - insets.left - insets.right - 48 : Math.min(width * 0.49, 550) }]} contentContainerStyle={[styles.homeContent, { paddingTop: Math.max(shortScreen ? 60 : 80, insets.top + 52), paddingBottom: Math.max(24, insets.bottom + 20) }]}>
@@ -213,7 +226,7 @@ function Novel() {
       {!choosingPlayer && <Pressable accessibilityRole="button" accessibilityLabel="Открыть меню" onPress={() => { setConfirmRestart(false); setMenu(true); }} style={styles.iconButton}><Text style={styles.menuIcon}>•••</Text></Pressable>}
     </View>
 
-    {!choosingPlayer && !imageReady && !imageError && <View pointerEvents="none" style={styles.loading}><ActivityIndicator color="#e1bf84" /><Text style={styles.loadingText}>Открываем сцену…</Text></View>}
+    {!choosingPlayer && slowImage && !imageReady && !imageError && <View pointerEvents="none" style={styles.loading}><ActivityIndicator color="#e1bf84" /><Text style={styles.loadingText}>Открываем сцену…</Text></View>}
     {!choosingPlayer && imageError && <View style={styles.overlay}><View style={styles.errorCard}><Text style={styles.errorTitle}>Не удалось открыть картинку</Text><Text style={styles.endText}>Проверь подключение и попробуй ещё раз.</Text><Button label="Повторить" light onPress={() => setRetry((value) => value + 1)} /><Button label="В меню" onPress={() => setScreen('home')} /></View></View>}
 
     {!choosingPlayer && novel.pending && !menu && <View style={[styles.update, { top: Math.max(74, insets.top + 66) }]}><Text style={styles.updateText}>Доступно обновление истории</Text><Pressable accessibilityRole="button" onPress={() => { setComplete(false); setTyping(false); void novel.applyUpdate(); }}><Text style={styles.updateAction}>Обновить ↻</Text></Pressable></View>}
@@ -236,7 +249,8 @@ function Novel() {
       </View></ScrollView></View>
     </Modal>
 
-    {portrait && screen === 'game' && !menu && <View style={[styles.overlay, styles.portrait]}><Text style={styles.rotate}>↻</Text><Text style={[styles.rotateTitle, { fontFamily: serif }]}>Истории нужно чуть больше места</Text><Text style={styles.rotateText}>Поверни устройство горизонтально{ '\n' }или расширь окно браузера.</Text><Button label="Главное меню" onPress={() => setScreen('home')} /></View>}
+    </>}
+    {portrait && <View style={[styles.overlay, styles.portrait]}><Text style={styles.rotate}>↻</Text><Text accessibilityRole="header" style={[styles.rotateTitle, { fontFamily: serif }]}>Поверни телефон горизонтально</Text><Text style={styles.rotateText}>История продолжится после поворота экрана.</Text></View>}
   </View>;
 }
 
@@ -302,7 +316,7 @@ const styles = StyleSheet.create({
   menuPlayer: { color: '#e4c493', fontSize: 13 },
   menuNotice: { color: '#dcc097', fontSize: 12, lineHeight: 18, marginTop: 4 },
   version: { color: '#98866a', fontSize: 8, letterSpacing: 1.2, marginTop: 13 },
-  portrait: { backgroundColor: '#17120d', padding: 32, gap: 20 },
+  portrait: { backgroundColor: '#080706', padding: 32, gap: 20 },
   rotate: { fontSize: 64, color: '#c6a36a' },
   rotateTitle: { fontSize: 30, color: '#f4e6cc', textAlign: 'center' },
   rotateText: { color: '#bca98b', fontSize: 15, lineHeight: 25, textAlign: 'center' },

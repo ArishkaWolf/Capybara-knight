@@ -12,12 +12,14 @@ function play(order, options = {}) {
   let progress = { ...newProgress(story), sceneId: 'scen12-2' };
   const remaining = [...order];
   const visited = new Set();
+  const transcript = new Map();
   let checkedReceipts = false;
   for (let step = 0; step < 1000 && !progress.ending; step++) {
     const scene = byId(progress.sceneId);
     visited.add(scene.id);
+    transcript.set(scene.id, sceneLines(scene, progress.state).map(line => line.text).join('\n'));
     if (progress.searching) {
-      if (options.collect !== false) for (const item of scene.search.hotspots) progress = inspect(story, progress, item.id);
+      if (options.collect !== false) for (const item of scene.search.hotspots) if (!options.skipEvidence?.includes(item.id)) progress = inspect(story, progress, item.id);
       progress = finishSearch(story, progress);
       continue;
     }
@@ -41,7 +43,7 @@ function play(order, options = {}) {
     progress = reconcileProgress(story, JSON.parse(JSON.stringify(progress))).progress;
   }
   assert.ok(progress.ending, 'route must end in fewer than 1000 steps');
-  return { progress, visited };
+  return { progress, visited, transcript };
 }
 
 test('All six investigation orders reach the complete ending and use every supplied new illustration', () => {
@@ -73,7 +75,7 @@ test('Accusations, apologies, three confrontation methods and all plans remain p
     for (const market of ['ask-invoice', 'pose-buyer', 'accuse-agata']) {
       for (const plan of ['plan-watch', 'plan-audit', ...(mill === 'help-wheel' ? ['plan-tikhon'] : [])]) {
         for (const evidence of ['present-documents', 'present-disguise', 'present-witnesses']) {
-          const { progress, visited } = play(['market', 'mill', 'witness'], { 'scen13-1': 'check-wolves', 'scen15': 'ask-faces', 'scen15-2': 'keep-description', 'scen16': market, 'scen18': mill, 'scen20': 'suspect-marta', 'scen21': 'demand-marta-proof', restore: true, 'scen23-1': plan, 'scen24-1': evidence, 'scen27': 'leave-after-opening' });
+          const { progress, visited } = play(['market', 'mill', 'witness'], { 'scen13-1': 'check-wolves', 'scen15': 'ask-faces', 'scen15-2': 'keep-description', 'scen16': market, 'scen18': mill, 'scen20': 'suspect-marta', 'scen21': 'demand-marta-proof', restore: true, 'scen23-1': plan, 'scen23-audit': 'audit-sales-books', 'scen24-1': evidence, 'scen27': 'leave-after-opening' });
           assert.ok(visited.has('scen21-6'));
           assert.ok(progress.state.flags.includes('martaTrusted'));
           assert.equal(progress.state.flags.includes('marketWarned'), market === 'accuse-agata');
@@ -129,3 +131,88 @@ test('Nested evidence conditions filter endings, while corrupt flags and routes 
 });
 
 function byIdCopy(copy, id) { return copy.scenes.find(scene => scene.id === id); }
+
+test('The three plans perform distinct actions; retaining sales records changes the ending', () => {
+  const cases = [
+    ['plan-watch', {}, 'scen23-watch-stop', true],
+    ['plan-tikhon', { 'scen23-tikhon': 'tikhon-secure-register' }, 'scen23-tikhon-register', true],
+    ['plan-tikhon', { 'scen23-tikhon': 'tikhon-signal-first' }, 'scen23-tikhon-signal', false],
+    ['plan-audit', { 'scen23-audit': 'audit-sales-books' }, 'scen23-audit-records', true],
+    ['plan-audit', { 'scen23-audit': 'audit-seal-cargo' }, 'scen23-audit-cargo', false],
+  ];
+  for (const [plan, options, branch, recovered] of cases) {
+    const result = play(['witness', 'market', 'mill'], { 'scen23-1': plan, ...options });
+    assert.ok(result.visited.has(branch));
+    assert.equal(result.progress.state.flags.includes('salesRecordsRecovered'), recovered);
+    assert.ok(result.progress.state.flags.includes('cargoSecured'));
+    assert.equal(result.progress.ending.title, recovered ? 'Дом, которому верят' : 'Первый честный вечер');
+    if (plan === 'plan-audit') {
+      assert.ok(!result.visited.has('scen23-watch'));
+      assert.doesNotMatch(result.transcript.get('scen24-2'), /мы слышали/);
+      assert.match(result.transcript.get('scen24-1'), /передавал нам адреса/);
+    }
+  }
+});
+
+test('An unwarned surveillance can preserve both; warned delay introduces a real cargo tradeoff', () => {
+  const safe = play(['witness', 'market', 'mill'], { 'scen23-watch': 'watch-records-quiet' });
+  assert.ok(safe.visited.has('scen23-watch-records'));
+  assert.equal(safe.progress.ending.title, 'Дом, которому верят');
+  for (const [decision, hasCargo, hasRecords] of [
+    ['watch-save-records', false, true],
+    ['watch-save-cargo-alone', true, false],
+  ]) {
+    const result = play(['witness', 'market', 'mill'], { 'scen16': 'accuse-agata', 'scen22': 'decline-tikhon', 'scen23-watch': 'watch-records-risk', 'scen23-watch-risk': decision });
+    assert.ok(result.visited.has('scen23-watch-risk'));
+    assert.equal(result.progress.state.flags.includes('cargoSecured'), hasCargo);
+    assert.equal(result.progress.state.flags.includes('cargoLost'), !hasCargo);
+    assert.equal(result.progress.state.flags.includes('salesRecordsRecovered'), hasRecords);
+    assert.equal(result.progress.ending.title, 'Первый честный вечер');
+    assert.match(result.transcript.get('scen27'), hasCargo ? /записи Агаты оказались неполными/ : /ящики ещё ищут ниже по реке/);
+  }
+});
+
+test('Tikhon can secure records even after Agata is warned, but his unavailable help cannot be selected', () => {
+  const result = play(['witness', 'market', 'mill'], { 'scen16': 'accuse-agata', 'scen23-watch': 'watch-records-risk', 'scen23-watch-risk': 'watch-save-cargo-with-help' });
+  assert.equal(result.progress.ending.title, 'Дом, которому верят');
+  const state = newProgress(story).state;
+  assert.ok(!sceneChoices(byId('scen23-watch-risk'), state).some(choice => choice.id === 'watch-save-cargo-with-help'));
+});
+
+test('Delivery and disguised expenses are mentioned only after learning the corresponding facts', () => {
+  const state = newProgress(story).state;
+  assert.doesNotMatch(sceneLines(byId('scen14'), { ...state, flags: ['marketVisited'] }).map(l => l.text).join('\n'), /ожидают новую партию/);
+  assert.match(sceneLines(byId('scen14'), { ...state, flags: ['marketVisited', 'marketDeliveryKnown'] }).map(l => l.text).join('\n'), /ожидают новую партию/);
+  assert.doesNotMatch(sceneLines(byId('scen21'), state).map(l => l.text).join('\n'), /дорогие вещи проходят как продукты/);
+  assert.match(sceneLines(byId('scen21'), { ...state, evidence: ['marketInvoice'] }).map(l => l.text).join('\n'), /дорогие вещи проходят как продукты/);
+  for (const [choice, known] of [['ask-invoice', false], ['pose-buyer', true], ['accuse-agata', false]]) {
+    const result = play(['market', 'mill', 'witness'], { 'scen16': choice, 'scen16-4': 'back-from-market' });
+    assert.equal(result.progress.state.flags.includes('marketDeliveryKnown'), known);
+  }
+  assert.ok(play(['market', 'mill', 'witness'], { 'scen16': 'ask-invoice', 'scen16-4': 'follow-agata' }).progress.state.flags.includes('marketDeliveryKnown'));
+});
+
+test('Empty tavern, Ignat absence and both accomplices receive explicit resolutions on every plan', () => {
+  for (const plan of ['plan-watch', 'plan-tikhon', 'plan-audit']) {
+    const result = play(['witness', 'market', 'mill'], { 'scen23-1': plan });
+    assert.match(result.transcript.get('scen21'), /гости разошлись по домам/);
+    assert.match(result.transcript.get('scen24-5'), /делил вещи после прежней поездки/);
+    assert.match(result.transcript.get('scen25'), /Роган вернёт свою долю/);
+    assert.match(result.transcript.get('scen25'), /Агата прекратит продажу/);
+  }
+});
+
+test('Already resolved old saves retain cargo and archive outcomes without inventing them before the night', () => {
+  for (const version of ['2026-10-11.1', '2026-10-12.1']) {
+    const saved = { ...newProgress(story), version, sceneId: 'scen24-5' };
+    saved.state.flags = ['tikhonCooperating']; saved.state.evidence = ['gangLedger']; saved.state.clues = 1;
+    const migrated = reconcileProgress(story, saved).progress;
+    assert.ok(migrated.state.flags.includes('cargoSecured'));
+    assert.ok(migrated.state.flags.includes('salesRecordsRecovered'));
+    const beforeNight = reconcileProgress(story, { ...saved, sceneId: 'scen23' }).progress;
+    assert.ok(!beforeNight.state.flags.includes('cargoSecured'));
+    const noHelp = reconcileProgress(story, { ...saved, state: { ...saved.state, flags: [] } }).progress;
+    assert.ok(noHelp.state.flags.includes('cargoSecured'));
+    assert.ok(!noHelp.state.flags.includes('salesRecordsRecovered'));
+  }
+});
