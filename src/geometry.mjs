@@ -21,3 +21,16 @@ export function hotspotBox(rect, frame, viewport, minimum = 48, insets = {}) {
   const centerY = frame.y + (rect.y + rect.height / 2) * frame.height;
   return { left: Math.max(left, Math.min(left + availableWidth - width, centerX - width / 2)), top: Math.max(top, Math.min(top + availableHeight - height, centerY - height / 2)), width, height };
 }
+
+// Visual outlines follow the artwork; touch targets may be larger on small screens.
+export function outlineSegments(points, frame) {
+  return points.map((point, index) => {
+    const next = points[(index + 1) % points.length];
+    const x = frame.x + point.x * frame.width;
+    const y = frame.y + point.y * frame.height;
+    const dx = (next.x - point.x) * frame.width;
+    const dy = (next.y - point.y) * frame.height;
+    const width = Math.hypot(dx, dy);
+    return { left: x + dx / 2 - width / 2, top: y + dy / 2, width, angle: Math.atan2(dy, dx) * 180 / Math.PI };
+  });
+}

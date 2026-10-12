@@ -13,6 +13,7 @@ const usesInvestigation = (condition) => condition && (['flags', 'notFlags', 'at
 const validLine = (line) => record(line) && words(line.speaker) && words(line.text) && validCondition(line.condition);
 const validImageSize = (size) => record(size) && Number.isFinite(size.width) && size.width > 0 && Number.isFinite(size.height) && size.height > 0;
 const validRect = (rect) => record(rect) && ['x', 'y', 'width', 'height'].every((key) => Number.isFinite(rect[key])) && rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0 && rect.x + rect.width <= 1 && rect.y + rect.height <= 1;
+const validOutline = (points, rect) => points === undefined || (Array.isArray(points) && points.length >= 3 && points.length <= 80 && points.every((point) => record(point) && Number.isFinite(point.x) && Number.isFinite(point.y) && point.x >= rect.x - 1e-8 && point.y >= rect.y - 1e-8 && point.x <= rect.x + rect.width + 1e-8 && point.y <= rect.y + rect.height + 1e-8));
 
 export function matchesCondition(condition, state) {
   const found = state.evidence ?? [];
@@ -51,7 +52,7 @@ export function validateStory(value) {
       if (value.schemaVersion < 2 || !record(search) || scene.choices || !words(search.finishLabel) || !validImageSize(search.imageSize) || !Array.isArray(search.hotspots) || !search.hotspots.length || new Set(search.hotspots.map((item) => item?.id)).size !== search.hotspots.length) throw new Error('Некорректная сцена осмотра');
       for (const hotspot of search.hotspots) {
         const rect = hotspot?.rect;
-        if (!record(hotspot) || !EVIDENCE_IDS.includes(hotspot.id) || !words(hotspot.label) || !validRect(rect) || !Array.isArray(hotspot.dialogues) || !hotspot.dialogues.length || hotspot.dialogues.some((line) => !validLine(line) || line.condition)) throw new Error('Некорректная область поиска');
+        if (!record(hotspot) || !EVIDENCE_IDS.includes(hotspot.id) || !words(hotspot.label) || !validRect(rect) || !validOutline(hotspot.outline, rect) || (hotspot.alwaysHighlight !== undefined && typeof hotspot.alwaysHighlight !== 'boolean') || !Array.isArray(hotspot.dialogues) || !hotspot.dialogues.length || hotspot.dialogues.some((line) => !validLine(line) || line.condition)) throw new Error('Некорректная область поиска');
         if (value.schemaVersion < 5 && !['fur', 'paws', 'quill'].includes(hotspot.id)) throw new Error('Формат не поддерживает новые улики');
       }
       if (search.title !== undefined && !words(search.title)) throw new Error('Некорректное название осмотра');
