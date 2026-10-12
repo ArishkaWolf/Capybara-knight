@@ -20,7 +20,11 @@
     "preview": "node scripts/preview.mjs",
     "preview:lan": "node scripts/preview.mjs --lan",
     "check": "tsc --noEmit",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "native:android": "expo run:android",
+    "native:ios": "expo run:ios",
+    "qr": "node scripts/prepare-links.mjs",
+    "publish:expo": "node scripts/publish-expo.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",
@@ -32,6 +36,7 @@
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
+    "expo-updates": "~57.0.25",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -40,6 +45,9 @@
     "typescript": "~6.0.3"
   },
   "devDependencies": {
+    "eas-cli": "^24.12.1",
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4",
     "sharp": "^0.35.5"
   }
 }

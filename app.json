@@ -20,7 +20,15 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/adaptive-icon.png",
         "backgroundColor": "#15100c"
-      }
+      },
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -29,15 +37,38 @@
       "favicon": "./assets/branding/favicon.png"
     },
     "plugins": [
-      ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ],
       "expo-status-bar",
       "expo-image",
-      ["expo-splash-screen", {
-        "backgroundColor": "#15100c",
-        "image": "./assets/branding/splash.png",
-        "imageWidth": 180,
-        "resizeMode": "contain"
-      }]
-    ]
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#15100c",
+          "image": "./assets/branding/splash.png",
+          "imageWidth": 180,
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "owner": "arishkawolfs-team",
+    "extra": {
+      "eas": {
+        "projectId": "b8e30b51-a677-4983-be94-3a437153e320"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b8e30b51-a677-4983-be94-3a437153e320",
+      "requestHeaders": {
+        "expo-channel-name": "preview"
+      }
+    }
   }
 }

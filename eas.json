@@ -1,13 +1,32 @@
 {
-  "cli": { "appVersionSource": "local" },
+  "cli": {
+    "appVersionSource": "local",
+    "version": ">=24.12.1"
+  },
   "build": {
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview",
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_STORY_URL": "https://arishkawolf.github.io/Capybara-knight/story.json"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "android": { "buildType": "app-bundle" }
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "production"
+    },
+    "ios-simulator": {
+      "extends": "preview",
+      "ios": {
+        "simulator": true
+      }
     }
   }
 }

@@ -50,11 +50,10 @@ function Novel() {
   const background = choosingPlayer || screen === 'home' ? pack.story.scenes.find((item) => item.id === pack.story.startScene)! : scene;
   const uri = imageUrl(pack, background.image);
   const imageKey = `${background.image}:${pack.story.version}:${retry}:${uri}`;
-  const renderKey = `${imageKey}:${fallbackKey === imageKey}:${background.search || background.interaction ? 'contain' : 'cover'}`;
+  const renderKey = `${imageKey}:${fallbackKey === imageKey}:contain`;
   const imageReady = loadedImageKey === renderKey;
   const imageError = failedImageKey === renderKey;
   const source = uri && fallbackKey !== imageKey ? { uri: `${uri}&retry=${retry}` } : bundledImages[background.image];
-  const interactiveBackground = Boolean(background.search || background.interaction);
   const lines = sceneLines(scene, progress.state);
   const availableChoices = sceneChoices(scene, progress.state);
   const activeInspection = progress.searching && inspection?.key === `${pack.story.version}:${scene.id}` ? scene.search?.hotspots.find((item) => item.id === inspection.id) : undefined;
@@ -176,7 +175,7 @@ function Novel() {
 
   return <View style={styles.root} onLayout={({ nativeEvent }) => setLayout({ width: nativeEvent.layout.width, height: nativeEvent.layout.height })}>
     <StatusBar hidden />
-    <SceneBackdrop frame={{ id: renderKey, source, fit: interactiveBackground ? 'contain' : 'cover', insets }} reducedMotion={reducedMotion} onReady={setLoadedImageKey} onError={(id) => {
+    <SceneBackdrop frame={{ id: renderKey, source, fit: 'contain', insets }} reducedMotion={reducedMotion} onReady={setLoadedImageKey} onError={(id) => {
       if (id !== renderKey) return;
       if (uri && fallbackKey !== imageKey && bundledImages[background.image] && pack.story.version === bundledPackage.story.version) setFallbackKey(imageKey);
       else setFailedImageKey(renderKey);

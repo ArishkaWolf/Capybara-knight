@@ -49,6 +49,7 @@ export function SceneBackdrop({ frame, reducedMotion, onReady, onError }: { fram
 
   const imageStyle = (item: Frame) => [StyleSheet.absoluteFill, item.fit === 'contain' && frame.insets];
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    {active && <Image source={active.source} contentFit="cover" blurRadius={24} cachePolicy="disk" transition={0} style={[StyleSheet.absoluteFill, { opacity: 0.3 }]} accessible={false} />}
     {active && <Image key={active.id} source={active.source} contentFit={active.fit} cachePolicy="disk" transition={0} style={imageStyle(active)} onDisplay={() => reveal(active.id)} onError={() => callbacks.current.onError(active.id)} accessible={false} />}
     {pending && <Image key={`preload:${pending.id}`} source={pending.source} contentFit={pending.fit} cachePolicy="disk" transition={0} style={[imageStyle(pending), { opacity: 0 }]} onLoad={() => {
       const current = request.current;

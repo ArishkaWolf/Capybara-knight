@@ -1,0 +1,95 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EXPO_PUBLIC_STORY_URL: https://arishkawolf.github.io/Capybara-knight/story.json
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm ci
+      - run: npm run prepare:story
+      - run: npm run check
+      - run: npm test
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --no-install
+      - name: Build standalone preview APK
+        working-directory: android
+        run: ./gradlew :app:assembleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64
+      - name: Check APK signature
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose "$APK"
+          cp "$APK" Capybara-knight-android.apk
+          sha256sum Capybara-knight-android.apk > Capybara-knight-android.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Capybara-knight-android
+          path: |
+            Capybara-knight-android.apk
+            Capybara-knight-android.apk.sha256
+          retention-days: 90
+  device:
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v5
+        with:
+          name: Capybara-knight-android
+          path: artifacts/apk
+      - name: Give this runner access to its emulator
+        run: sudo chown "$USER" /dev/kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: python3 scripts/check-android.py artifacts/apk/Capybara-knight-android.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Android-device-check
+          path: artifacts/android-device
+  publish:
+    needs: [apk, device]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v5
+        with:
+          name: Capybara-knight-android
+          path: artifacts/apk
+      - name: Publish installable APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="android-preview-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" artifacts/apk/* --target "$GITHUB_SHA" --prerelease --title "Капибара-рыцарь · Android preview ${GITHUB_RUN_NUMBER}" --notes-file MOBILE_APK.md

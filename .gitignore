@@ -7,3 +7,7 @@ public/photo/
 .env.*
 !.env.example
 artifacts/
+android/
+ios/
+*.keystore
+*.jks
