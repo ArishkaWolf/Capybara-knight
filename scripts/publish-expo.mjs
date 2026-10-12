@@ -26,7 +26,7 @@ const response = await fetch(`https://qr.expo.dev/eas-update?${query}`);
 if (!response.ok) throw new Error(`Expo QR service: ${response.status}`);
 const expoGo = (await response.text()).trim();
 if (!/^exps?:\/\/u\.expo\.dev\//.test(expoGo)) throw new Error('Expected an official Expo Go link.');
-const preview = new URL('https://expo.dev/preview/update');
+const preview = new URL('https://expo.dev/preview/update/expo-go');
 preview.search = new URLSearchParams({ projectId, group: update.group, slug: 'exp', updateRuntimeVersion: update.runtimeVersion });
 const links = { web: 'https://arishkawolf.github.io/Capybara-knight/', expoGo, expoPreview: preview.toString(), expoProject: projectId, expoGroup: update.group };
 await writeFile(new URL('assets/distribution/links.json', root), JSON.stringify(links, null, 2) + '\n');

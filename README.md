@@ -6,7 +6,7 @@
 
 | В браузере на ПК, планшете и телефоне | Expo Go на iOS и Android |
 | --- | --- |
-| **[Открыть игру →](https://arishkawolf.github.io/Capybara-knight/)** | **[Открыть в Expo Go →](https://expo.dev/preview/update?projectId=b8e30b51-a677-4983-be94-3a437153e320&group=c0c94597-dd6a-438e-802c-1ce2afe626f6&slug=exp&updateRuntimeVersion=1.0.0&createdAt=2026-10-12T11%3A19%3A13.408Z&message=%D0%92%D0%B5%D1%80%D1%81%D0%B8%D1%8F+%D0%B4%D0%BB%D1%8F+iOS+%D0%B8+Android)** |
+| **[Открыть игру →](https://arishkawolf.github.io/Capybara-knight/)** | **[Открыть в Expo Go →](https://expo.dev/preview/update/expo-go?projectId=b8e30b51-a677-4983-be94-3a437153e320&group=c0c94597-dd6a-438e-802c-1ce2afe626f6&slug=exp&updateRuntimeVersion=1.0.0&createdAt=2026-10-12T11%3A19%3A13.408Z&message=%D0%92%D0%B5%D1%80%D1%81%D0%B8%D1%8F+%D0%B4%D0%BB%D1%8F+iOS+%D0%B8+Android)** |
 | ![QR браузерной игры](assets/distribution/browser-qr.svg) | ![QR для Expo Go](assets/distribution/expo-qr.svg) |
 
 Для Expo установите [Expo Go](https://expo.dev/go), совместимый с SDK 57, и отсканируйте правый QR-код. Это опубликованная версия: компьютер и локальный сервер не нужны. На iOS войдите в аккаунт внутри Expo Go.
