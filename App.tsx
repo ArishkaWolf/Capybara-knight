@@ -31,6 +31,7 @@ function Novel() {
   const compact = height < 600 || width < 900;
   const portrait = windowSize.height > windowSize.width;
   const shortScreen = height < 500 && !portrait;
+  const supportsFullscreen = Platform.OS === 'web' && typeof document !== 'undefined' && typeof document.documentElement.requestFullscreen === 'function';
   const [screen, setScreen] = useState<'profiles' | 'home' | 'game'>('profiles');
   const choosingPlayer = screen === 'profiles' || !novel.activeProfile;
   const [menu, setMenu] = useState(false);
@@ -143,8 +144,6 @@ function Novel() {
     try {
       if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
       else await document.exitFullscreen();
-      const orientation = window.screen.orientation as unknown as { lock?: (orientation: string) => Promise<void> };
-      if (document.fullscreenElement) await orientation?.lock?.('landscape');
     } catch { novel.setNotice('Полноэкранный режим недоступен в этом браузере.'); }
   }
 
@@ -221,7 +220,7 @@ function Novel() {
     </>}
 
     <View style={[styles.toolbar, { top: Math.max(16, insets.top + 10), right: Math.max(20, insets.right + 12) }]}>
-      {Platform.OS === 'web' && <Pressable accessibilityRole="button" accessibilityLabel="Полный экран" onPress={fullscreen} style={styles.iconButton}><Text style={styles.icon}>⛶</Text></Pressable>}
+      {supportsFullscreen && <Pressable accessibilityRole="button" accessibilityLabel="Полный экран" onPress={fullscreen} style={styles.iconButton}><Text style={styles.icon}>⛶</Text></Pressable>}
       {!choosingPlayer && <Pressable accessibilityRole="button" accessibilityLabel="Открыть меню" onPress={() => { setConfirmRestart(false); setMenu(true); }} style={styles.iconButton}><Text style={styles.menuIcon}>•••</Text></Pressable>}
     </View>
 
