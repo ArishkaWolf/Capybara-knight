@@ -34,6 +34,16 @@ jobs:
       - run: npm test
       - name: Generate Android project
         run: npx expo prebuild --platform android --no-install
+      - name: Configure Gradle download timeout
+        run: node scripts/prepare-android-build.mjs
+      - name: Download Gradle with retries
+        working-directory: android
+        run: |
+          for attempt in 1 2 3; do
+            if ./gradlew --version; then exit 0; fi
+            sleep 5
+          done
+          exit 1
       - name: Build standalone preview APK
         working-directory: android
         run: ./gradlew :app:assembleRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError" -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64
