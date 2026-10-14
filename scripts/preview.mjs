@@ -1,4 +1,3 @@
-// Local preview only. Publish dist/ on a static host; this server is not needed there.
 import http from 'node:http';
 import { networkInterfaces } from 'node:os';
 import { readFile, stat } from 'node:fs/promises';

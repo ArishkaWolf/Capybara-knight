@@ -1,13 +1,7 @@
 import { reconcileProgress } from './engine.mjs';
 
-/** @typedef {import('./types').ProfileLibrary} ProfileLibrary */
-/** @typedef {import('./types').PlayerProfile} PlayerProfile */
-/** @typedef {import('./types').Progress} Progress */
-/** @typedef {import('./types').Story} Story */
-
 export const PROFILE_KEY = 'capybara.players.v1';
 export const LEGACY_SAVE_KEY = 'capybara.progress.v1';
-/** @returns {ProfileLibrary} */
 export const emptyProfiles = () => ({ schemaVersion: 1, players: [] });
 const record = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const timestamp = (value) => Number.isSafeInteger(value) && value >= 0;
@@ -19,7 +13,6 @@ export function normalizePlayerName(name) {
   return normalized;
 }
 
-/** @param {ProfileLibrary} library */
 function checkName(library, name, exceptId = null) {
   const normalized = normalizePlayerName(name);
   if (library.players.some((player) => player.id !== exceptId && player.name.toLocaleLowerCase('ru-RU') === normalized.toLocaleLowerCase('ru-RU'))) {
@@ -28,7 +21,6 @@ function checkName(library, name, exceptId = null) {
   return normalized;
 }
 
-/** @param {ProfileLibrary} library @param {number} now */
 function uniqueId(library, now) {
   let id;
   do { id = `player-${now.toString(36)}-${Math.random().toString(36).slice(2, 12)}`; }
@@ -36,26 +28,22 @@ function uniqueId(library, now) {
   return id;
 }
 
-/** @param {ProfileLibrary} library @returns {{ library: ProfileLibrary, player: PlayerProfile }} */
 export function addPlayer(library, name, now = Date.now()) {
   const player = { id: uniqueId(library, now), name: checkName(library, name), createdAt: now, lastPlayedAt: null, progress: null };
   return { library: { ...library, players: [...library.players, player] }, player };
 }
 
-/** @param {ProfileLibrary} library @param {string} id @returns {ProfileLibrary} */
 export function renamePlayer(library, id, name) {
   if (!library.players.some((player) => player.id === id)) throw new Error('Игрок не найден.');
   const normalized = checkName(library, name, id);
   return { ...library, players: library.players.map((player) => player.id === id ? { ...player, name: normalized } : player) };
 }
 
-/** @param {ProfileLibrary} library @param {string} id @param {Progress} progress @returns {ProfileLibrary} */
 export function updatePlayerProgress(library, id, progress, now = Date.now()) {
   if (!library.players.some((player) => player.id === id)) throw new Error('Игрок не найден.');
   return { ...library, players: library.players.map((player) => player.id === id ? { ...player, progress, lastPlayedAt: now } : player) };
 }
 
-/** @param {ProfileLibrary} library @param {Story} story */
 export function reconcilePlayers(library, story) {
   const resetIds = [];
   const players = library.players.map((player) => {
@@ -64,10 +52,9 @@ export function reconcilePlayers(library, story) {
     if (result.reset) resetIds.push(player.id);
     return { ...player, progress: result.reset ? null : result.progress };
   });
-  return { library: /** @type {ProfileLibrary} */ ({ ...library, players }), resetIds };
+  return { library: { ...library, players }, resetIds };
 }
 
-/** @param {string | null} raw @param {string | null} legacy @param {Story} story */
 export function restoreProfileLibrary(raw, legacy, story, now = Date.now()) {
   if (raw === null) {
     if (!legacy) return { library: emptyProfiles(), migrated: false, damaged: false, resetIds: [] };
@@ -76,7 +63,7 @@ export function restoreProfileLibrary(raw, legacy, story, now = Date.now()) {
     const result = reconcileProgress(story, saved);
     if (!saved || result.reset) return { library: emptyProfiles(), migrated: false, damaged: Boolean(saved), resetIds: [] };
     const player = { id: 'legacy-player', name: 'Игрок 1', createdAt: now, lastPlayedAt: null, progress: result.progress };
-    return { library: /** @type {ProfileLibrary} */ ({ schemaVersion: 1, players: [player] }), migrated: true, damaged: false, resetIds: [] };
+    return { library: { schemaVersion: 1, players: [player] }, migrated: true, damaged: false, resetIds: [] };
   }
 
   let parsed;
@@ -100,21 +87,14 @@ export function restoreProfileLibrary(raw, legacy, story, now = Date.now()) {
   return { ...reconciled, migrated: false, damaged };
 }
 
-/**
- * Store the entire library in one write: a player's identity and progress cannot
- * become detached. Capture snapshots before queuing, and recover after failed writes.
- * @param {{ getItem(key: string): Promise<string | null>, setItem(key: string, value: string): Promise<unknown> }} storage
- */
 export function createProfileStorage(storage) {
   let queue = Promise.resolve();
-  /** @param {ProfileLibrary} library */
   function save(library) {
     const serialized = JSON.stringify(library);
     const operation = queue.catch(() => undefined).then(() => storage.setItem(PROFILE_KEY, serialized));
     queue = operation.then(() => undefined);
     return queue;
   }
-  /** @param {Story} story */
   async function load(story) {
     let raw, legacy;
     try { [raw, legacy] = await Promise.all([storage.getItem(PROFILE_KEY), storage.getItem(LEGACY_SAVE_KEY)]); }
@@ -122,7 +102,6 @@ export function createProfileStorage(storage) {
     const restored = restoreProfileLibrary(raw, legacy, story);
     let storageAvailable = true;
     if (restored.migrated) {
-      // Keep the legacy key as a backup, even if migration cannot be persisted.
       try { await save(restored.library); } catch { storageAvailable = false; }
     }
     return { ...restored, storageAvailable };

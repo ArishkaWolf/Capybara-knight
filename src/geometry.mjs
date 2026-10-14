@@ -1,4 +1,3 @@
-// The same image frame is used by resizeMode and the clickable regions.
 export function imageFrame(imageSize, viewport, mode = 'contain', insets = {}) {
   const left = insets.left ?? 0;
   const top = insets.top ?? 0;
@@ -22,7 +21,6 @@ export function hotspotBox(rect, frame, viewport, minimum = 48, insets = {}) {
   return { left: Math.max(left, Math.min(left + availableWidth - width, centerX - width / 2)), top: Math.max(top, Math.min(top + availableHeight - height, centerY - height / 2)), width, height };
 }
 
-// Visual outlines follow the artwork; touch targets may be larger on small screens.
 export function outlineSegments(points, frame) {
   return points.map((point, index) => {
     const next = points[(index + 1) % points.length];

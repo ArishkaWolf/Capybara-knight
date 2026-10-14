@@ -1,6 +1,5 @@
 import { readFile, writeFile, copyFile, readdir, unlink } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
-// public/story.json remains the editable source. The published copy uses WebP.
 await copyFile(new URL('assets/story.json', root), new URL('dist/story.json', root));
 await writeFile(new URL('dist/.nojekyll', root), '');
 for (const name of await readdir(new URL('dist/photo/', root))) {

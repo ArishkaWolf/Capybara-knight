@@ -31,7 +31,7 @@ test('Each clue counts once; rereading and unknown objects do not add clues', ()
 test('All eight evidence combinations produce only matching thoughts and allow both night routes', () => {
   for (let mask = 0; mask < 8; mask++) {
     let progress = searching();
-    const ids = ['fur', 'paws', 'quill'].filter((id, bit) => mask & (1 << bit));
+    const ids = ['fur', 'paws', 'quill'].filter((_, bit) => mask & (1 << bit));
     for (const id of ids) progress = inspect(story, progress, id);
     progress = finishSearch(story, progress);
     assert.equal(progress.sceneId, night.id); assert.equal(progress.searching, false);
@@ -61,7 +61,7 @@ test('All eight evidence combinations produce only matching thoughts and allow b
 test('An unfound quill is never mentioned in any route; all quill thoughts require finding it', () => {
   const mentionsQuill = (line) => /игл[ауыое]|игол|щепк/iu.test(line.text);
   for (let mask = 0; mask < 8; mask++) {
-    const ids = ['fur', 'paws', 'quill'].filter((id, bit) => mask & (1 << bit));
+    const ids = ['fur', 'paws', 'quill'].filter((_, bit) => mask & (1 << bit));
     let progress = searching();
     for (const id of ids) progress = inspect(story, progress, id);
     const restored = reconcileProgress(story, JSON.parse(JSON.stringify(progress))).progress;

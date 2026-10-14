@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { DialogueLine } from './types';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -12,7 +12,7 @@ type Props = {
   maxHeight: number;
   onTyping: (typing: boolean) => void;
   onAdvance: (pageX: number) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 };
 
 export function Dialogue({ line, complete, reducedMotion, paused, compact, maxHeight, onTyping, onAdvance, children }: Props) {

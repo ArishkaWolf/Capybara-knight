@@ -83,7 +83,7 @@ test('Both branches converge after their notes for all eight evidence combinatio
     'return-tavern': ['scen8-5', 'scen8-8', 'scen9-1', 'scen9-2', 'scen10', 'scen10-1', 'scen10-2'],
   };
   for (let mask = 0; mask < 8; mask++) {
-    const evidence = ['fur', 'paws', 'quill'].filter((id, bit) => mask & (1 << bit));
+    const evidence = ['fur', 'paws', 'quill'].filter((_, bit) => mask & (1 << bit));
     for (const [choice, expected] of Object.entries(routes)) {
       const start = entry('scen8-3');
       start.state.evidence = evidence; start.state.clues = evidence.length;

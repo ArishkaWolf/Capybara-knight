@@ -7,7 +7,7 @@ const story = validateStory(JSON.parse(await readFile(new URL('../public/story.j
 const sceneById = id => story.scenes.find(scene => scene.id === id);
 const entry = (sceneId, evidence = []) => ({ ...newProgress(story), sceneId, state: { ...newProgress(story).state, evidence, clues: evidence.length } });
 const lastLine = progress => sceneLines(sceneById(progress.sceneId), progress.state).length - 1;
-const combinations = Array.from({ length: 8 }, (_, mask) => ['fur', 'paws', 'quill'].filter((id, bit) => mask & (1 << bit)));
+const combinations = Array.from({ length: 8 }, (_, mask) => ['fur', 'paws', 'quill'].filter((_, bit) => mask & (1 << bit)));
 
 test('All three departure routes reach the guarded wolf village with every evidence combination', () => {
   const routes = [

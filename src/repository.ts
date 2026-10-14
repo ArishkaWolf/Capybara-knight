@@ -3,10 +3,11 @@ import { Platform } from 'react-native';
 import bundled from '../assets/story.json';
 import { validateStory } from './engine.mjs';
 import { createProfileStorage } from './profiles.mjs';
-import type { Story, StoryPackage } from './types';
+import { restoreStoryCache } from './story-cache.mjs';
+import type { StoryPackage } from './types';
 
 const CACHE_KEY = 'capybara.story.v1';
-export const bundledPackage: StoryPackage = { story: validateStory(bundled) as Story, baseUrl: null };
+export const bundledPackage: StoryPackage = { story: validateStory(bundled), baseUrl: null };
 const profileStorage = createProfileStorage(AsyncStorage);
 export const saveProfiles = profileStorage.save;
 
@@ -15,13 +16,7 @@ export async function restore() {
   let storageAvailable = true;
   try {
     const cache = await AsyncStorage.getItem(CACHE_KEY);
-    if (cache) {
-      try {
-        const parsed = JSON.parse(cache);
-        const story = validateStory(parsed.story) as Story;
-        if (typeof parsed.baseUrl === 'string' && /^https?:\/\//.test(parsed.baseUrl)) pack = { story, baseUrl: parsed.baseUrl };
-      } catch { /* A damaged cache must not prevent starting the bundled game. */ }
-    }
+    pack = restoreStoryCache(cache, bundledPackage);
   } catch { storageAvailable = false; }
   const profiles = await profileStorage.load(pack.story);
   return { pack, ...profiles, storageAvailable: storageAvailable && profiles.storageAvailable };
@@ -47,7 +42,7 @@ export async function fetchStory(): Promise<StoryPackage | null> {
     url.searchParams.set('_check', String(Date.now()));
     const response = await fetch(url.toString(), { cache: 'no-store', signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const story = validateStory(await response.json()) as Story;
+    const story = validateStory(await response.json());
     return { story, baseUrl: new URL('./', url).toString() };
   } finally { clearTimeout(timeout); }
 }

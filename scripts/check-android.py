@@ -1,4 +1,3 @@
-"""Smoke-test our installed preview APK on the disposable CI emulator."""
 import pathlib
 import re
 import subprocess

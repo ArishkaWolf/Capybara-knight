@@ -6,7 +6,6 @@ const root = new URL('../', import.meta.url);
 const story = validateStory(JSON.parse(await readFile(new URL('public/story.json', root), 'utf8')));
 await prepareImages(story);
 await prepareBranding();
-// A readable review copy, regenerated from the canonical JSON on every build.
 const clueNames = { fur: 'шерсть', paws: 'отпечатки лап', quill: 'игла дикобраза', wolfDisguise: 'волчий плащ', falsePaw: 'накладка для следов', tavernTag: 'бирка таверны', marketInvoice: 'накладная Агаты', martaLedger: 'книга закупок Марты', stolenBox: 'шкатулка с тайником', gangLedger: 'книга расчётов сообщников' };
 const flagNames = { sharedClues: 'Игнату рассказали об уликах', wolvesTrusted: 'волки доверяют Капибаре', witnessVisited: 'опрошены пострадавшие', marketVisited: 'посещён рынок', millVisited: 'посещена мельница', witnessSounds: 'Савелий вспомнил звуки', marketWarned: 'Агата предупреждена', helpedTikhon: 'Капибара помог Тихону', tikhonTrusted: 'Тихону предложена помощь', martaAccused: 'Марту обвинили', martaTrusted: 'Марта доверяет Капибаре', recordsCompared: 'счета сверены с поставщиком', planWatch: 'выбрано наблюдение', planTikhon: 'выбрана помощь Тихона', planAudit: 'выбрана проверка поставки', tikhonCooperating: 'Тихон сотрудничает', caseProved: 'вина Игната доказана', stayedToHelp: 'Капибара остался помочь', marketDeliveryKnown: 'известно о вечерней партии', salesRecordsRecovered: 'сохранены записи о покупателях', cargoSecured: 'весь груз задержан', cargoLost: 'часть груза скрыта' };
 const conditionText = (condition) => [

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { imageFrame, hotspotBox, outlineSegments } from './geometry.mjs';
 import type { EvidenceId, Hotspot, Search } from './types';
@@ -10,10 +10,10 @@ function Contour({ item, frame, touchBox, strong, found }: { item: Hotspot; fram
   const color = found ? '#d8bd89' : strong ? '#f3d7a1' : 'rgba(240, 207, 145, 0.62)';
   if (!item.outline) return <View pointerEvents="none" style={[styles.objectBorder, { left: frame.x + item.rect.x * frame.width - touchBox.left, top: frame.y + item.rect.y * frame.height - touchBox.top, width: item.rect.width * frame.width, height: item.rect.height * frame.height, borderColor: color }]} />;
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-    {outlineSegments(item.outline, frame).map((segment: { left: number; top: number; width: number; angle: number }, index: number) => <React.Fragment key={index}>
+    {outlineSegments(item.outline, frame).map((segment: { left: number; top: number; width: number; angle: number }, index: number) => <Fragment key={index}>
       <View style={[styles.stroke, { left: segment.left - touchBox.left, top: segment.top - touchBox.top - 2, width: segment.width, height: 4, backgroundColor: strong ? 'rgba(244, 213, 156, 0.15)' : 'rgba(244, 213, 156, 0.07)', transform: [{ rotate: `${segment.angle}deg` }] }]} />
       <View style={[styles.stroke, { left: segment.left - touchBox.left, top: segment.top - touchBox.top - 0.6, width: segment.width, height: 1.2, backgroundColor: color, transform: [{ rotate: `${segment.angle}deg` }] }]} />
-    </React.Fragment>)}
+    </Fragment>)}
   </View>;
 }
 

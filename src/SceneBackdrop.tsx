@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { Image, type ImageProps } from 'expo-image';
 
 type Frame = { id: string; source: ImageProps['source']; fit: 'contain' | 'cover'; insets: { top: number; bottom: number; left: number; right: number } };
 type Request = { frame: Frame; covered: boolean; loaded: boolean; swapped: boolean; revealing: boolean };
 
-/** Keep the previous illustration until the next bitmap is ready behind black. */
 export function SceneBackdrop({ frame, reducedMotion, onReady, onError }: { frame: Frame; reducedMotion: boolean; onReady: (id: string) => void; onError: (id: string) => void }) {
   const [active, setActive] = useState<Frame | null>(null);
   const [pending, setPending] = useState<Frame | null>(null);
@@ -34,8 +33,6 @@ export function SceneBackdrop({ frame, reducedMotion, onReady, onError }: { fram
       swap(current);
     });
     return () => { request.current = null; shade.stopAnimation(); };
-    // A frame ID includes the image, fallback source, fit and story version.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frame.id, shade]);
 
   function reveal(id: string) {

@@ -39,7 +39,6 @@ function play(order, options = {}) {
       assert.notEqual(next, progress, `${scene.id}: stuck before a choice or search`);
       progress = next;
     }
-    // Reload at every transition: flags, evidence and endings must survive saving.
     progress = reconcileProgress(story, JSON.parse(JSON.stringify(progress))).progress;
   }
   assert.ok(progress.ending, 'route must end in fewer than 1000 steps');

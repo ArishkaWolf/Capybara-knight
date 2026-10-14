@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { imageFrame, hotspotBox } from './geometry.mjs';
 import type { Interaction } from './types';

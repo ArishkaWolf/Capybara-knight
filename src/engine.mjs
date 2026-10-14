@@ -25,17 +25,14 @@ export function sceneLines(scene, state) {
   return scene.dialogues.filter((line) => matchesCondition(line.condition, state));
 }
 
-/** @param {import('./types').Scene} scene @param {import('./types').GameState} state @returns {import('./types').Choice[]} */
 export function sceneChoices(scene, state) {
   return (scene.choices ?? []).filter((choice) => matchesCondition(choice.condition, state));
 }
 
-/** @param {import('./types').Scene} scene @param {import('./types').GameState} state */
 export function nextScene(scene, state) {
   return scene.routes?.find((route) => matchesCondition(route.condition, state))?.next ?? scene.next;
 }
 
-// Reject broken deployments before replacing the current playable story.
 export function validateStory(value) {
   if (!record(value) || ![1, 2, 3, 4, 5].includes(value.schemaVersion) || !words(value.version) || !words(value.title) || !Array.isArray(value.scenes) || !value.scenes.length) throw new Error('Неподдерживаемый формат сюжета');
   const ids = new Set(value.scenes.map((scene) => scene?.id));
@@ -78,15 +75,12 @@ export function newProgress(story) {
   return { version: story.version, sceneId: story.startScene, line: -1, state: initialState(), ending: null };
 }
 
-// Scene IDs survive reordering. If a scene is removed, restart safely.
-// On a new version reopen the scene, so new dialogue or choices cannot be skipped.
 export function reconcileProgress(story, saved) {
   if (!record(saved) || !validState(saved.state) || !Number.isInteger(saved.line) || saved.line < -1 || (saved.ending !== null && !validEnding(saved.ending))) return { progress: newProgress(story), reset: Boolean(saved) };
   const scene = story.scenes.find((item) => item.id === saved.sceneId);
   if (!scene) return { progress: newProgress(story), reset: true };
   const changed = saved.version !== story.version;
   const state = { ...initialState(), ...saved.state };
-  // Earlier releases resolved the night without explicit cargo/archive decisions.
   const legacyNightResolved = ['2026-10-11.1', '2026-10-12.1'].includes(saved.version) && ['scen23-2', 'scen24', 'scen24-1', 'scen24-2', 'scen24-3', 'scen24-4', 'scen24-5', 'scen25', 'scen26', 'scen27', 'scen27-1', 'scen28'].includes(scene.id);
   if (changed && legacyNightResolved) state.flags = [...new Set([...state.flags, 'cargoSecured', ...(state.flags.includes('tikhonCooperating') && state.evidence.includes('gangLedger') ? ['salesRecordsRecovered'] : [])])];
   const ending = changed ? null : saved.ending && scene.next === null && !scene.choices ? continuationEnding() : saved.ending;

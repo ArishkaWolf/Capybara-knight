@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -78,7 +78,6 @@ function Novel() {
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    // Let the screen rotate so the same portrait guard also works in native apps.
     void ScreenOrientation.unlockAsync().catch(() => undefined);
   }, []);
 
@@ -124,7 +123,7 @@ function Novel() {
       } else { setInspection(null); setComplete(false); setTyping(false); }
       return;
     }
-    const updated = advance(pack.story, progress) as Progress;
+    const updated = advance(pack.story, progress);
     if (updated !== progress) move(updated);
   }
 
@@ -162,15 +161,15 @@ function Novel() {
 
   function inspectClue(id: EvidenceId) {
     if (portrait || menu || !imageReady || !progress.searching || activeInspection) return;
-    novel.change(inspect(pack.story, progress, id) as Progress);
+    novel.change(inspect(pack.story, progress, id));
     setInspection({ key: `${pack.story.version}:${scene.id}`, id, line: 0 });
     setComplete(false); setTyping(!reducedMotion);
   }
 
   function closeInspection() { setInspection(null); setComplete(false); setTyping(false); }
 
-  const choices = showChoices ? <View style={styles.choices}>{availableChoices.map((choice, i) => <Pressable key={choice.id} accessibilityRole="button" accessibilityLabel={choice.label} onPress={() => { if (imageReady && !portrait && !menu) move(choose(pack.story, progress, choice.id) as Progress); }} style={({ pressed }) => [styles.choice, availableChoices.length > 2 && { flexBasis: width < 760 ? '45%' : '30%' }, pressed && { backgroundColor: '#eadbc5' }]}><Text style={styles.choiceNumber}>{String(i + 1).padStart(2, '0')}</Text><Text style={styles.choiceText}>{choice.label}</Text><Text style={styles.choiceArrow}>→</Text></Pressable>)}</View> : null;
-  const playerSwitcher = <Pressable accessibilityRole="button" accessibilityLabel="Сменить игрока" onPress={showPlayers} style={[styles.playerSwitch, !portrait && { position: 'absolute', bottom: Math.max(18, insets.bottom + 12), left: Math.max(24, insets.left + 18), maxWidth: width * 0.4 }]}><Text numberOfLines={2} style={styles.currentPlayer}>Играет: {novel.activeProfile?.name}</Text><Text style={styles.switchLabel}>Сменить игрока →</Text></Pressable>;
+  const choices = showChoices ? <View style={styles.choices}>{availableChoices.map((choice, i) => <Pressable key={choice.id} accessibilityRole="button" accessibilityLabel={choice.label} onPress={() => { if (imageReady && !portrait && !menu) move(choose(pack.story, progress, choice.id)); }} style={({ pressed }) => [styles.choice, availableChoices.length > 2 && { flexBasis: width < 760 ? '45%' : '30%' }, pressed && { backgroundColor: '#eadbc5' }]}><Text style={styles.choiceNumber}>{String(i + 1).padStart(2, '0')}</Text><Text style={styles.choiceText}>{choice.label}</Text><Text style={styles.choiceArrow}>→</Text></Pressable>)}</View> : null;
+  const playerSwitcher = <Pressable accessibilityRole="button" accessibilityLabel="Сменить игрока" onPress={showPlayers} style={[styles.playerSwitch, { position: 'absolute', bottom: Math.max(18, insets.bottom + 12), left: Math.max(24, insets.left + 18), maxWidth: width * 0.4 }]}><Text numberOfLines={2} style={styles.currentPlayer}>Играет: {novel.activeProfile?.name}</Text><Text style={styles.switchLabel}>Сменить игрока →</Text></Pressable>;
 
   return <View style={styles.root} onLayout={({ nativeEvent }) => setLayout({ width: nativeEvent.layout.width, height: nativeEvent.layout.height })}>
     <StatusBar hidden />
@@ -182,7 +181,7 @@ function Novel() {
     {!portrait && <>
     {choosingPlayer ? <PlayerSelect players={novel.profiles} story={pack.story} ready={novel.ready} compact={compact} topInset={insets.top} bottomInset={insets.bottom} leftInset={insets.left} rightInset={insets.right} notice={novel.notice} onSelect={selectPlayer} onCreate={(name) => { novel.createPlayer(name); setScreen('home'); }} onRename={novel.changePlayerName} /> : screen === 'home' ? <>
       <View style={styles.homeShade} />
-      <ScrollView style={[styles.homeScroll, { right: portrait ? insets.right + 24 : Math.max(insets.right + 24, width * 0.07), width: portrait ? width - insets.left - insets.right - 48 : Math.min(width * 0.49, 550) }]} contentContainerStyle={[styles.homeContent, { paddingTop: Math.max(shortScreen ? 60 : 80, insets.top + 52), paddingBottom: Math.max(24, insets.bottom + 20) }]}>
+      <ScrollView style={[styles.homeScroll, { right: Math.max(insets.right + 24, width * 0.07), width: Math.min(width * 0.49, 550) }]} contentContainerStyle={[styles.homeContent, { paddingTop: Math.max(shortScreen ? 60 : 80, insets.top + 52), paddingBottom: Math.max(24, insets.bottom + 20) }]}>
         <Text style={styles.eyebrow}>НЕБОЛЬШАЯ ВИЗУАЛЬНАЯ НОВЕЛЛА</Text>
         <Text accessibilityRole="header" style={[styles.title, { fontFamily: serif, fontSize: compact ? height < 360 ? 38 : 46 : 78 }, shortScreen && { marginTop: 8 }]}>Капибара{ '\n' }рыцарь</Text>
         <View style={[styles.goldLine, shortScreen && { marginVertical: 8 }]} />
@@ -191,17 +190,16 @@ function Novel() {
           {novel.hasSave && <Button label="Продолжить историю →" disabled={!novel.ready} onPress={() => { novel.resume(); setScreen('game'); setComplete(false); setTyping(progress.line >= 0 && !reducedMotion); }} />}
           <Button label={novel.hasSave ? 'Начать заново' : 'Начать историю →'} disabled={!novel.ready} light onPress={() => novel.hasSave ? (setConfirmRestart(true), setMenu(true)) : startFresh()} />
         </View>
-        {portrait && playerSwitcher}
       </ScrollView>
-      {!portrait && playerSwitcher}
+      {playerSwitcher}
     </> : <>
       <Pressable accessibilityRole="button" accessibilityLabel={progress.interacting ? scene.interaction?.hint ?? 'Сначала прочитай записку на стойке' : progress.searching && !activeInspection ? 'Осматривай предметы на картинке' : showChoices ? 'Сначала выбери действие в диалоге' : typing ? 'Показать реплику целиком' : 'Следующая реплика или сцена'} onPress={next} style={styles.tapArea} />
       <View pointerEvents="none" style={[styles.sceneHeading, { top: Math.max(20, insets.top + 12), left: Math.max(24, insets.left + 18) }]}>
         <Text style={styles.chapter}>{scene.chapter}</Text>
         <Text style={styles.counter}>{String(sceneIndex + 1).padStart(2, '0')} / {String(pack.story.scenes.length).padStart(2, '0')}</Text>
       </View>
-      {progress.searching && scene.search && imageReady && !progress.ending && <Inspection key={`${pack.story.version}:${scene.id}`} search={scene.search} evidence={progress.state.evidence ?? []} width={width} height={height} insets={insets} busy={Boolean(activeInspection)} onInspect={inspectClue} onFinish={() => move(finishSearch(pack.story, progress) as Progress)} />}
-      {progress.interacting && scene.interaction && imageReady && !progress.ending && <SceneInteraction key={`${pack.story.version}:${scene.id}`} interaction={scene.interaction} width={width} height={height} insets={insets} onInteract={(id) => { if (!menu && !portrait) move(interact(pack.story, progress, id) as Progress); }} />}
+      {progress.searching && scene.search && imageReady && !progress.ending && <Inspection key={`${pack.story.version}:${scene.id}`} search={scene.search} evidence={progress.state.evidence ?? []} width={width} height={height} insets={insets} busy={Boolean(activeInspection)} onInspect={inspectClue} onFinish={() => move(finishSearch(pack.story, progress))} />}
+      {progress.interacting && scene.interaction && imageReady && !progress.ending && <SceneInteraction key={`${pack.story.version}:${scene.id}`} interaction={scene.interaction} width={width} height={height} insets={insets} onInteract={(id) => { if (!menu && !portrait) move(interact(pack.story, progress, id)); }} />}
       {!progress.ending && imageReady && <View pointerEvents="box-none" style={[styles.dialoguePosition, { left: Math.max(24, insets.left + 16, (width - 1180) / 2), right: Math.max(24, insets.right + 16, (width - 1180) / 2), bottom: Math.max(22, insets.bottom + 14) }]}>
         {line ? <Dialogue key={`${pack.story.version}:${scene.id}:${activeInspection && inspection ? `${inspection.id}:${inspection.line}` : progress.line}`} line={line} complete={complete} reducedMotion={reducedMotion} paused={menu || portrait || !foreground} compact={compact} maxHeight={Math.max(100, height - insets.top - insets.bottom - 100) * 0.85} onTyping={onTyping} onAdvance={(pageX) => { if (pageX >= width / 2) next(); }}>
           {choices}
@@ -260,7 +258,7 @@ const styles = StyleSheet.create({
   homeScroll: { position: 'absolute', top: 0, bottom: 0 },
   homeContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'flex-start' },
   eyebrow: { fontSize: 10, letterSpacing: 2.5, color: '#dfc496', fontWeight: '600' },
-  title: { color: '#fff6e8', lineHeight: undefined, marginTop: 15, letterSpacing: -1.5 },
+  title: { color: '#fff6e8', marginTop: 15, letterSpacing: -1.5 },
   goldLine: { width: 48, height: 2, backgroundColor: '#cfa364', marginVertical: 18 },
   description: { color: '#e3d8c6', fontSize: 17, lineHeight: 27 },
   startButtons: { marginTop: 32, gap: 10, width: '100%', maxWidth: 360 },
