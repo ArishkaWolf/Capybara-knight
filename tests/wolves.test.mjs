@@ -44,13 +44,13 @@ test('All three departure routes reach the guarded wolf village with every evide
   }
 });
 
-test('Trying to discuss clues leads to a refusal and only an explicit Leave choice', () => {
+test('Trying to discuss clues receives an evasive answer and only an explicit Leave choice', () => {
   const attempt = entry('scen11-1-clues', ['fur', 'paws', 'quill']);
   attempt.state.talkedToPorcupine = true;
   const scene = sceneById(attempt.sceneId);
   assert.deepEqual(scene.choices.map(choice => choice.label), ['Уйти']);
   const lines = sceneLines(scene, attempt.state);
-  assert.ok(lines.some(line => line.speaker === 'Игнат' && line.text.includes('не хочу разговаривать')));
+  assert.ok(lines.some(line => line.speaker === 'Игнат' && line.text.includes('нет времени')));
   const ready = { ...attempt, line: lines.length - 1 };
   assert.equal(advance(story, ready), ready);
   const leaving = choose(story, ready, 'leave');
@@ -65,8 +65,8 @@ test('Departure remembers the conversation only on the talk route and uses only 
       const state = { ...entry('scen12', evidence).state, talkedToPorcupine };
       const lines = sceneLines(sceneById('scen12'), state);
       const text = lines.map(line => line.text).join('\n');
-      assert.equal(text.includes('сразу разозлился'), talkedToPorcupine);
-      assert.equal(text.includes('куда уезжал'), talkedToPorcupine);
+      assert.equal(text.includes('оборвал разговор'), talkedToPorcupine);
+      assert.equal(text.includes('не объяснил, что принимал'), talkedToPorcupine);
       assert.equal(text.includes('та игла'), talkedToPorcupine && evidence.includes('quill'));
       assert.equal(lines.filter(line => line.condition).length, talkedToPorcupine ? 2 + Number(evidence.includes('quill')) : 1);
       for (const id of ['scen10-3', 'scen11-1-clues', 'scen12']) {
@@ -105,7 +105,7 @@ test('Saving after the talk route retains its departure thoughts; corrupt route 
   assert.deepEqual(reconcileProgress(story, JSON.parse(JSON.stringify(saved))).progress, saved);
   const updated = reconcileProgress({ ...story, version: 'next' }, saved).progress;
   assert.equal(updated.state.talkedToPorcupine, true);
-  assert.ok(sceneLines(sceneById('scen12'), updated.state).some(line => line.text.includes('сразу разозлился')));
+  assert.ok(sceneLines(sceneById('scen12'), updated.state).some(line => line.text.includes('оборвал разговор')));
   for (const talkedToPorcupine of ['true', 1, null]) assert.equal(reconcileProgress(story, { ...saved, state: { ...saved.state, talkedToPorcupine } }).reset, true);
 });
 

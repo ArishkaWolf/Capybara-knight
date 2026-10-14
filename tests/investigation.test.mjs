@@ -6,7 +6,7 @@ import { advance, choose, finishSearch, inspect, matchesCondition, newProgress, 
 const story = validateStory(JSON.parse(await readFile(new URL('../public/story.json', import.meta.url), 'utf8')));
 const byId = id => story.scenes.find(scene => scene.id === id);
 const branchIds = { witness: 'visit-witness', market: 'visit-market', mill: 'visit-mill' };
-const permutations = [['witness', 'market', 'mill'], ['witness', 'mill', 'market'], ['market', 'witness', 'mill'], ['market', 'mill', 'witness'], ['mill', 'witness', 'market'], ['mill', 'market', 'witness']];
+const permutations = [['witness', 'market', 'mill'], ['witness', 'mill', 'market'], ['market', 'witness', 'mill']];
 
 function play(order, options = {}) {
   let progress = { ...newProgress(story), sceneId: 'scen12-2' };
@@ -46,7 +46,7 @@ function play(order, options = {}) {
   return { progress, visited, transcript };
 }
 
-test('All six investigation orders reach the complete ending and use every supplied new illustration', () => {
+test('Every available investigation order reaches the complete ending and uses every supplied new illustration', () => {
   const allVisited = new Set();
   for (const order of permutations) {
     const { progress, visited } = play(order);
@@ -60,8 +60,8 @@ test('All six investigation orders reach the complete ending and use every suppl
   assert.ok(allVisited.has('scen24-2'));
 });
 
-test('Any pair of directions suffices even when all searches are skipped', () => {
-  for (const order of permutations.map(order => order.slice(0, 2))) {
+test('Each available pair of directions suffices even when all searches are skipped', () => {
+  for (const order of [['witness', 'market'], ['market', 'witness'], ['witness', 'mill']]) {
     const { progress } = play(order, { collect: false, 'scen18': 'watch-jackals', 'scen24-1': 'present-witnesses' });
     assert.equal(progress.ending.title, 'Первый честный вечер');
     assert.deepEqual(progress.state.evidence, []);
@@ -75,7 +75,7 @@ test('Accusations, apologies, three confrontation methods and all plans remain p
     for (const market of ['ask-invoice', 'pose-buyer', 'accuse-agata']) {
       for (const plan of ['plan-watch', 'plan-audit', ...(mill === 'help-wheel' ? ['plan-tikhon'] : [])]) {
         for (const evidence of ['present-documents', 'present-disguise', 'present-witnesses']) {
-          const { progress, visited } = play(['market', 'mill', 'witness'], { 'scen13-1': 'check-wolves', 'scen15': 'ask-faces', 'scen15-2': 'keep-description', 'scen16': market, 'scen18': mill, 'scen20': 'suspect-marta', 'scen21': 'demand-marta-proof', restore: true, 'scen23-1': plan, 'scen23-audit': 'audit-sales-books', 'scen24-1': evidence, 'scen27': 'leave-after-opening' });
+          const { progress, visited } = play(['market', 'witness', 'mill'], { 'scen13-1': 'check-wolves', 'scen15': 'ask-faces', 'scen15-2': 'keep-description', 'scen16': market, 'scen18': mill, 'scen20': 'suspect-marta', 'scen21': 'demand-marta-proof', restore: true, 'scen23-1': plan, 'scen23-audit': 'audit-sales-books', 'scen24-1': evidence, 'scen27': 'leave-after-opening' });
           assert.ok(visited.has('scen21-6'));
           assert.ok(progress.state.flags.includes('martaTrusted'));
           assert.equal(progress.state.flags.includes('marketWarned'), market === 'accuse-agata');
@@ -84,20 +84,28 @@ test('Accusations, apologies, three confrontation methods and all plans remain p
       }
     }
   }
-  const declined = play(['mill', 'market', 'witness'], { 'scen20': 'check-old-accounts', 'scen22': 'decline-tikhon' });
+  const declined = play(['witness', 'mill', 'market'], { 'scen20': 'check-old-accounts', 'scen22': 'decline-tikhon' });
   assert.equal(declined.progress.ending.title, 'Первый честный вечер');
   assert.ok(declined.visited.has('scen20-1'));
   assert.ok(!declined.progress.state.flags.includes('tikhonCooperating'));
 });
 
-test('Hidden choices cannot be executed, paths unlock after two visits and evidence can be revisited once', () => {
-  let progress = { ...newProgress(story), sceneId: 'scen14', line: 0 };
-  assert.deepEqual(sceneChoices(byId('scen14'), progress.state).map(choice => choice.id), ['visit-witness', 'visit-market', 'visit-mill']);
+test('The mill unlocks only after Savely, completed directions disappear and repeatable hubs contain no monologue', () => {
+  let progress = { ...newProgress(story), sceneId: 'scen14', line: -1 };
+  assert.deepEqual(sceneLines(byId('scen14'), progress.state), []);
+  assert.deepEqual(sceneLines(byId('scen21-4'), progress.state), []);
+  assert.deepEqual(sceneChoices(byId('scen14'), progress.state).map(choice => choice.id), ['visit-witness', 'visit-market']);
   assert.equal(choose(story, progress, 'return-to-inn'), progress);
+  assert.equal(choose(story, progress, 'visit-mill'), progress);
+  progress.state.flags = ['marketVisited'];
+  assert.deepEqual(sceneChoices(byId('scen14'), progress.state).map(choice => choice.id), ['visit-witness']);
   progress.state.flags = ['witnessVisited', 'marketVisited'];
   progress.line = sceneLines(byId('scen14'), progress.state).length - 1;
   assert.deepEqual(sceneChoices(byId('scen14'), progress.state).map(choice => choice.id), ['visit-mill', 'return-to-inn']);
   assert.equal(choose(story, progress, 'visit-witness'), progress);
+  progress.state.flags.push('millVisited');
+  assert.deepEqual(sceneChoices(byId('scen14'), progress.state).map(choice => choice.id), ['return-to-inn']);
+  assert.equal(choose(story, progress, 'revisit-store'), progress);
   let searching = { ...progress, sceneId: 'scen19', line: -1, searching: true };
   for (const item of byId('scen19').search.hotspots) searching = inspect(story, searching, item.id);
   const revisited = reconcileProgress(story, JSON.parse(JSON.stringify(searching))).progress;
@@ -179,17 +187,54 @@ test('Tikhon can secure records even after Agata is warned, but his unavailable 
   assert.ok(!sceneChoices(byId('scen23-watch-risk'), state).some(choice => choice.id === 'watch-save-cargo-with-help'));
 });
 
-test('Delivery and disguised expenses are mentioned only after learning the corresponding facts', () => {
+test('Conversations refer only to learned expenses, visits and statements', () => {
   const state = newProgress(story).state;
-  assert.doesNotMatch(sceneLines(byId('scen14'), { ...state, flags: ['marketVisited'] }).map(l => l.text).join('\n'), /ожидают новую партию/);
-  assert.match(sceneLines(byId('scen14'), { ...state, flags: ['marketVisited', 'marketDeliveryKnown'] }).map(l => l.text).join('\n'), /ожидают новую партию/);
+  const text = (id, changes = {}) => sceneLines(byId(id), { ...state, ...changes }).map(l => l.text).join('\n');
+  for (const id of ['scen11', 'scen11-1', 'scen11-1-clues', 'scen13', 'scen13-1', 'scen13-2', 'scen13-3']) assert.doesNotMatch(text(id), /мельниц/i);
+  assert.match(text('scen15'), /С?старой мельнице/);
+  assert.doesNotMatch(text('scen17'), /Савелий говорил/);
+  assert.match(text('scen17', { flags: ['witnessVisited'] }), /Савелий говорил/);
+  assert.doesNotMatch(text('scen20'), /встретил лиса и шакала/);
+  assert.match(text('scen20', { flags: ['witnessVisited', 'millVisited'] }), /встретил лиса и шакала/);
+  assert.doesNotMatch(text('scen20'), /показала накладную/);
+  assert.match(text('scen20', { flags: ['marketVisited'], evidence: ['marketInvoice'] }), /показала накладную/);
   assert.doesNotMatch(sceneLines(byId('scen21'), state).map(l => l.text).join('\n'), /дорогие вещи проходят как продукты/);
   assert.match(sceneLines(byId('scen21'), { ...state, evidence: ['marketInvoice'] }).map(l => l.text).join('\n'), /дорогие вещи проходят как продукты/);
+  assert.match(text('scen21-3'), /Сегодня после заката/);
+  assert.match(text('scen21-7'), /На мельнице я ещё не был/);
+  assert.doesNotMatch(text('scen21-7'), /С перевозчиками я говорил|Тихон запомнил/);
+  assert.doesNotMatch(text('scen22-2', { flags: ['tikhonCooperating'] }), /Я проверил его книгу/);
+  assert.match(text('scen22-2', { flags: ['tikhonCooperating'], evidence: ['gangLedger'] }), /Я проверил его книгу/);
   for (const [choice, known] of [['ask-invoice', false], ['pose-buyer', true], ['accuse-agata', false]]) {
-    const result = play(['market', 'mill', 'witness'], { 'scen16': choice, 'scen16-4': 'back-from-market' });
+    const result = play(['market', 'witness', 'mill'], { 'scen16': choice, 'scen16-4': 'back-from-market' });
     assert.equal(result.progress.state.flags.includes('marketDeliveryKnown'), known);
   }
-  assert.ok(play(['market', 'mill', 'witness'], { 'scen16': 'ask-invoice', 'scen16-4': 'follow-agata' }).progress.state.flags.includes('marketDeliveryKnown'));
+  assert.ok(play(['market', 'witness', 'mill'], { 'scen16': 'ask-invoice', 'scen16-4': 'follow-agata' }).progress.state.flags.includes('marketDeliveryKnown'));
+});
+
+test('The fox is introduced as Tikhon, Savely attends verification and the guard reads the council decision', () => {
+  const result = play(['witness', 'market', 'mill']);
+  assert.match(result.transcript.get('scen18'), /лиса зовут Тихон, а шакала — Роган/);
+  assert.doesNotMatch(result.transcript.get('scen18-2') ?? '', /Шакалы/);
+  assert.match(result.transcript.get('scen21-7'), /Позову хозяйку дома и Савелия/);
+  assert.ok(byId('scen23-2').dialogues.some(line => line.speaker === 'Савелий'));
+  assert.ok(byId('scen25').dialogues.some(line => line.speaker === 'Стражник' && /Совет решил/.test(line.text)));
+  for (const scene of story.scenes.filter(s => Number(s.id.match(/scen(\d+)/)?.[1]) >= 24)) assert.ok(scene.dialogues.every(line => line.speaker !== 'Глава волков'));
+  const cautious = play(['market', 'witness'], { collect: false, 'scen16': 'pose-buyer', 'scen16-4': 'back-from-market' });
+  assert.match(cautious.transcript.get('scen21-7'), /На мельнице я ещё не был/);
+  assert.match(cautious.transcript.get('scen25'), /Тихон также вернёт свою долю/);
+});
+
+test('Existing saves reopen the revised menu immediately while retaining completed directions and evidence', () => {
+  const old = { ...newProgress(story), version: '2026-10-12.2', sceneId: 'scen14', line: 4 };
+  old.state.flags = ['witnessVisited', 'marketVisited'];
+  old.state.evidence = ['quill', 'marketInvoice']; old.state.clues = 2;
+  const restored = reconcileProgress(story, old).progress;
+  assert.equal(restored.line, -1);
+  assert.deepEqual(restored.state.evidence, old.state.evidence);
+  assert.deepEqual(sceneChoices(byId('scen14'), restored.state).map(c => c.id), ['visit-mill', 'return-to-inn']);
+  assert.equal(choose(story, restored, 'visit-witness'), restored);
+  assert.equal(choose(story, restored, 'visit-mill').sceneId, 'scen18');
 });
 
 test('Empty tavern, Ignat absence and both accomplices receive explicit resolutions on every plan', () => {

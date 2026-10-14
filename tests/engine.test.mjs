@@ -11,7 +11,8 @@ test('All scenes load the current images, including the continuation and renamed
   for (const scene of story.scenes) assert.ok((await readFile(new URL(`../${scene.image}`, import.meta.url))).length > 0);
   assert.equal(story.scenes[1].image, 'photo/scen2.png');
   assert.equal(story.scenes.find((scene) => scene.id === 'scen7-5').image, 'photo/сцена7-5.png');
-  assert.ok(story.scenes.every((scene) => scene.dialogues.length > 0));
+  assert.ok(story.scenes.every((scene) => scene.dialogues.length > 0 || scene.choices?.length > 0));
+  assert.deepEqual(story.scenes.filter(scene => scene.dialogues.length === 0).map(scene => scene.id), ['scen14', 'scen21-4']);
 });
 
 test('The ninth scene repeats scen4-3 before payment, and the decision follows the farewell', () => {
