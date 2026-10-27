@@ -9,6 +9,8 @@ export function sceneChoices(scene: Scene, state: GameState): Choice[];
 export function nextScene(scene: Scene, state: GameState): string | null;
 export function validateStory(value: unknown): Story;
 export function newProgress(story: Story): Progress;
+export function rewindChapter(story: Story, progress: Progress, chapterId: string): Progress;
+export function dialogueForPlayer(line: DialogueLine, name: string): DialogueLine;
 export function reconcileProgress(story: Story, saved: unknown): { progress: Progress; reset: boolean };
 export function advance(story: Story, progress: Progress): Progress;
 export function choose(story: Story, progress: Progress, choiceId: string): Progress;

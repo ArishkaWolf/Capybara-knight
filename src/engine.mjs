@@ -8,8 +8,9 @@ const validEvidence = (items) => Array.isArray(items) && new Set(items).size ===
 const validFlags = (items) => Array.isArray(items) && new Set(items).size === items.length && items.every((id) => FLAG_IDS.includes(id));
 const validState = (state) => record(state) && Object.keys(state).every((key) => key in initialState()) && (state.drink === null || words(state.drink)) && Number.isInteger(state.courage) && state.courage >= 0 && Number.isInteger(state.clues) && state.clues >= 0 && typeof state.helping === 'boolean' && (state.evidence === undefined || validEvidence(state.evidence)) && (state.talkedToPorcupine === undefined || typeof state.talkedToPorcupine === 'boolean') && (state.flags === undefined || validFlags(state.flags));
 const validEnding = (ending) => record(ending) && words(ending.title) && words(ending.text);
-const validCondition = (condition, depth = 0) => condition === undefined || (depth < 8 && record(condition) && Object.keys(condition).every((key) => ['found', 'missing', 'talkedToPorcupine', 'flags', 'notFlags', 'atLeast', 'any', 'not'].includes(key)) && (condition.found === undefined || validEvidence(condition.found)) && (condition.missing === undefined || validEvidence(condition.missing)) && (condition.talkedToPorcupine === undefined || typeof condition.talkedToPorcupine === 'boolean') && !(condition.found ?? []).some((id) => (condition.missing ?? []).includes(id)) && (condition.flags === undefined || validFlags(condition.flags)) && (condition.notFlags === undefined || validFlags(condition.notFlags)) && !(condition.flags ?? []).some((id) => (condition.notFlags ?? []).includes(id)) && (condition.atLeast === undefined || (record(condition.atLeast) && Object.keys(condition.atLeast).every((key) => ['flags', 'count'].includes(key)) && validFlags(condition.atLeast.flags) && Number.isInteger(condition.atLeast.count) && condition.atLeast.count > 0 && condition.atLeast.count <= condition.atLeast.flags.length)) && (condition.any === undefined || (Array.isArray(condition.any) && condition.any.length > 0 && condition.any.every((part) => record(part) && validCondition(part, depth + 1)))) && (condition.not === undefined || (record(condition.not) && validCondition(condition.not, depth + 1))));
+const validCondition = (condition, depth = 0) => condition === undefined || (depth < 8 && record(condition) && Object.keys(condition).every((key) => ['drink', 'found', 'missing', 'talkedToPorcupine', 'flags', 'notFlags', 'atLeast', 'any', 'not'].includes(key)) && (condition.drink === undefined || words(condition.drink)) && (condition.found === undefined || validEvidence(condition.found)) && (condition.missing === undefined || validEvidence(condition.missing)) && (condition.talkedToPorcupine === undefined || typeof condition.talkedToPorcupine === 'boolean') && !(condition.found ?? []).some((id) => (condition.missing ?? []).includes(id)) && (condition.flags === undefined || validFlags(condition.flags)) && (condition.notFlags === undefined || validFlags(condition.notFlags)) && !(condition.flags ?? []).some((id) => (condition.notFlags ?? []).includes(id)) && (condition.atLeast === undefined || (record(condition.atLeast) && Object.keys(condition.atLeast).every((key) => ['flags', 'count'].includes(key)) && validFlags(condition.atLeast.flags) && Number.isInteger(condition.atLeast.count) && condition.atLeast.count > 0 && condition.atLeast.count <= condition.atLeast.flags.length)) && (condition.any === undefined || (Array.isArray(condition.any) && condition.any.length > 0 && condition.any.every((part) => record(part) && validCondition(part, depth + 1)))) && (condition.not === undefined || (record(condition.not) && validCondition(condition.not, depth + 1))));
 const usesInvestigation = (condition) => condition && (['flags', 'notFlags', 'atLeast', 'any', 'not'].some((key) => condition[key] !== undefined) || [...(condition.found ?? []), ...(condition.missing ?? [])].some((id) => !['fur', 'paws', 'quill'].includes(id)));
+const usesDrink = condition => condition && (condition.drink !== undefined || condition.any?.some(usesDrink) || usesDrink(condition.not));
 const validLine = (line) => record(line) && words(line.speaker) && words(line.text) && validCondition(line.condition);
 const validImageSize = (size) => record(size) && Number.isFinite(size.width) && size.width > 0 && Number.isFinite(size.height) && size.height > 0;
 const validRect = (rect) => record(rect) && ['x', 'y', 'width', 'height'].every((key) => Number.isFinite(rect[key])) && rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0 && rect.x + rect.width <= 1 && rect.y + rect.height <= 1;
@@ -18,7 +19,7 @@ const validOutline = (points, rect) => points === undefined || (Array.isArray(po
 export function matchesCondition(condition, state) {
   const found = state.evidence ?? [];
   const flags = state.flags ?? [];
-  return !condition || ((condition.found ?? []).every((id) => found.includes(id)) && (condition.missing ?? []).every((id) => !found.includes(id)) && (condition.talkedToPorcupine === undefined || condition.talkedToPorcupine === (state.talkedToPorcupine ?? false)) && (condition.flags ?? []).every((id) => flags.includes(id)) && (condition.notFlags ?? []).every((id) => !flags.includes(id)) && (!condition.atLeast || condition.atLeast.flags.filter((id) => flags.includes(id)).length >= condition.atLeast.count) && (!condition.any || condition.any.some((part) => matchesCondition(part, state))) && (!condition.not || !matchesCondition(condition.not, state)));
+  return !condition || ((condition.drink === undefined || condition.drink === state.drink) && (condition.found ?? []).every((id) => found.includes(id)) && (condition.missing ?? []).every((id) => !found.includes(id)) && (condition.talkedToPorcupine === undefined || condition.talkedToPorcupine === (state.talkedToPorcupine ?? false)) && (condition.flags ?? []).every((id) => flags.includes(id)) && (condition.notFlags ?? []).every((id) => !flags.includes(id)) && (!condition.atLeast || condition.atLeast.flags.filter((id) => flags.includes(id)).length >= condition.atLeast.count) && (!condition.any || condition.any.some((part) => matchesCondition(part, state))) && (!condition.not || !matchesCondition(condition.not, state)));
 }
 
 export function sceneLines(scene, state) {
@@ -34,7 +35,7 @@ export function nextScene(scene, state) {
 }
 
 export function validateStory(value) {
-  if (!record(value) || ![1, 2, 3, 4, 5].includes(value.schemaVersion) || !words(value.version) || !words(value.title) || !Array.isArray(value.scenes) || !value.scenes.length) throw new Error('Неподдерживаемый формат сюжета');
+  if (!record(value) || ![1, 2, 3, 4, 5, 6].includes(value.schemaVersion) || !words(value.version) || !words(value.title) || !Array.isArray(value.scenes) || !value.scenes.length) throw new Error('Неподдерживаемый формат сюжета');
   const ids = new Set(value.scenes.map((scene) => scene?.id));
   if (ids.size !== value.scenes.length || !ids.has(value.startScene)) throw new Error('Некорректные идентификаторы сцен');
   const target = (id) => id === null || ids.has(id);
@@ -67,12 +68,56 @@ export function validateStory(value) {
         if (value.schemaVersion < 5 && (choice.condition !== undefined || choice.effects.flags !== undefined || (choice.effects.evidence ?? []).some((id) => !['fur', 'paws', 'quill'].includes(id)))) throw new Error('Формат не поддерживает выборы расследования');
       }
     }
+    if (scene.board !== undefined) {
+      const board = scene.board;
+      if (value.schemaVersion < 6 || scene.search || scene.interaction || !record(board) || !words(board.id) || !words(board.title) || !words(board.hint) || !['notices', 'drinks'].includes(board.kind) || !validImageSize(board.imageSize) || !validRect(board.rect) || !Array.isArray(board.items) || !board.items.length || board.items.length > 12 || new Set(board.items.map(item => item?.id)).size !== board.items.length) throw new Error('Некорректная интерактивная доска');
+      for (const item of board.items) {
+        if (!record(item) || !words(item.id) || !words(item.title) || !words(item.text) || !validRect(item.rect) || item.rect.x < board.rect.x || item.rect.y < board.rect.y || item.rect.x + item.rect.width > board.rect.x + board.rect.width + 1e-8 || item.rect.y + item.rect.height > board.rect.y + board.rect.height + 1e-8) throw new Error('Некорректный пункт доски');
+      }
+      if (board.kind === 'drinks' && (!scene.choices || scene.choices.length !== board.items.length || board.items.some(item => !scene.choices.some(choice => choice.id === item.id && words(choice.effects.drink) && !choice.condition)))) throw new Error('Напитки на доске не совпадают с выбором');
+      if (board.kind === 'notices' && scene.choices) throw new Error('Объявления не могут заменять сюжетный выбор');
+    }
+    if (value.schemaVersion < 6 && [...scene.dialogues, ...(scene.choices ?? []), ...(scene.routes ?? [])].some(item => usesDrink(item.condition))) throw new Error('Формат не поддерживает условия напитков');
+  }
+  if (value.chapters !== undefined) {
+    if (value.schemaVersion < 6 || !Array.isArray(value.chapters) || !value.chapters.length || new Set(value.chapters.map(chapter => chapter?.id)).size !== value.chapters.length) throw new Error('Некорректный список глав');
+    const assigned = new Set();
+    for (const chapter of value.chapters) {
+      if (!record(chapter) || !words(chapter.id) || !words(chapter.title) || !Array.isArray(chapter.scenes) || !chapter.scenes.length) throw new Error('Некорректная глава');
+      for (const id of chapter.scenes) {
+        if (!ids.has(id) || assigned.has(id)) throw new Error('Сцена отсутствует или относится к нескольким главам');
+        assigned.add(id);
+      }
+    }
+    if (assigned.size !== ids.size) throw new Error('Не все сцены отнесены к главам');
   }
   return value;
 }
 
+const copyState = state => ({ ...initialState(), ...state, evidence: [...(state.evidence ?? [])], flags: [...(state.flags ?? [])] });
+
+function checkpoint(story, progress, partial = false) {
+  const chapter = story.chapters?.find(item => item.scenes.includes(progress.sceneId));
+  if (!chapter || progress.history?.some(item => item.chapterId === chapter.id)) return progress;
+  const saved = { chapterId: chapter.id, sceneId: progress.sceneId, state: copyState(progress.state), ...(partial ? { partial: true } : {}) };
+  return { ...progress, history: [...(progress.history ?? []), saved] };
+}
+
+export function rewindChapter(story, progress, chapterId) {
+  const index = progress.history?.findIndex(item => item.chapterId === chapterId) ?? -1;
+  if (index < 0) return progress;
+  const saved = progress.history[index];
+  if (!validState(saved.state) || !story.chapters?.some(item => item.id === chapterId && item.scenes.includes(saved.sceneId))) return progress;
+  return { version: story.version, sceneId: saved.sceneId, line: -1, state: copyState(saved.state), ending: null, history: progress.history.slice(0, index + 1).map(item => ({ ...item, state: copyState(item.state) })) };
+}
+
+export function dialogueForPlayer(line, name) {
+  const player = name || 'Путник';
+  return { ...line, speaker: line.speaker.replace(/^Капибара(?=$| · )/u, () => player), text: line.text.split('{playerName}').join(player) };
+}
+
 export function newProgress(story) {
-  return { version: story.version, sceneId: story.startScene, line: -1, state: initialState(), ending: null };
+  return checkpoint(story, { version: story.version, sceneId: story.startScene, line: -1, state: initialState(), ending: null });
 }
 
 export function reconcileProgress(story, saved) {
@@ -85,6 +130,16 @@ export function reconcileProgress(story, saved) {
   if (changed && legacyNightResolved) state.flags = [...new Set([...state.flags, 'cargoSecured', ...(state.flags.includes('tikhonCooperating') && state.evidence.includes('gangLedger') ? ['salesRecordsRecovered'] : [])])];
   const ending = changed ? null : saved.ending && scene.next === null && !scene.choices ? continuationEnding() : saved.ending;
   const progress = { version: story.version, sceneId: scene.id, line: changed ? -1 : Math.min(saved.line, sceneLines(scene, state).length - 1), state, ending };
+  if (story.chapters) {
+    const history = [];
+    const seen = new Set();
+    for (const item of Array.isArray(saved.history) ? saved.history.slice(0, story.chapters.length) : []) {
+      if (!record(item) || !validState(item.state) || seen.has(item.chapterId) || (item.partial !== undefined && typeof item.partial !== 'boolean') || !story.chapters.some(chapter => chapter.id === item.chapterId && chapter.scenes.includes(item.sceneId))) break;
+      seen.add(item.chapterId);
+      history.push({ chapterId: item.chapterId, sceneId: item.sceneId, state: copyState(item.state), ...(item.partial ? { partial: true } : {}) });
+    }
+    progress.history = history.length ? history : checkpoint(story, progress, true).history;
+  }
   if (!changed && saved.searching === true && scene.search && !progress.ending) progress.searching = true;
   if (!changed && saved.interacting === true && scene.interaction && !progress.ending) progress.interacting = true;
   return { progress, reset: false };
@@ -105,7 +160,7 @@ export function advance(story, progress) {
 function goTo(story, progress, next, ending) {
   if (next === null) return { ...progress, ending: ending ?? continuationEnding() };
   if (!story.scenes.some((scene) => scene.id === next)) throw new Error('Следующая сцена отсутствует');
-  return { ...progress, sceneId: next, line: -1, ending: null, ...(progress.searching !== undefined ? { searching: false } : {}), ...(progress.interacting !== undefined ? { interacting: false } : {}) };
+  return checkpoint(story, { ...progress, sceneId: next, line: -1, ending: null, ...(progress.searching !== undefined ? { searching: false } : {}), ...(progress.interacting !== undefined ? { interacting: false } : {}) });
 }
 
 export function choose(story, progress, choiceId) {

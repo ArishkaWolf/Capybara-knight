@@ -134,7 +134,7 @@ test('Invalid mandatory objects and old-client note formats are rejected', () =>
     assert.throws(() => validateStory(broken));
   }
   for (const schemaVersion of [1, 2, 3]) {
-    const compatible = { ...story, schemaVersion, scenes: [{ ...story.scenes[0], next: null }] };
+    const compatible = { ...story, schemaVersion, chapters: undefined, scenes: [{ ...story.scenes[0], next: null }] };
     assert.equal(validateStory(compatible), compatible);
   }
 });

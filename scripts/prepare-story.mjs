@@ -9,6 +9,7 @@ await prepareBranding();
 const clueNames = { fur: 'шерсть', paws: 'отпечатки лап', quill: 'игла дикобраза', wolfDisguise: 'волчий плащ', falsePaw: 'накладка для следов', tavernTag: 'бирка таверны', marketInvoice: 'накладная Агаты', martaLedger: 'книга закупок Марты', stolenBox: 'шкатулка с тайником', gangLedger: 'книга расчётов сообщников' };
 const flagNames = { sharedClues: 'Игнату рассказали об уликах', wolvesTrusted: 'волки доверяют Капибаре', witnessVisited: 'опрошены пострадавшие', marketVisited: 'посещён рынок', millVisited: 'посещена мельница', witnessSounds: 'Савелий вспомнил звуки', marketWarned: 'Агата предупреждена', helpedTikhon: 'Капибара помог Тихону', tikhonTrusted: 'Тихону предложена помощь', martaAccused: 'Марту обвинили', martaTrusted: 'Марта доверяет Капибаре', recordsCompared: 'счета сверены с поставщиком', planWatch: 'выбрано наблюдение', planTikhon: 'выбрана помощь Тихона', planAudit: 'выбрана проверка поставки', tikhonCooperating: 'Тихон сотрудничает', caseProved: 'вина Игната доказана', stayedToHelp: 'Капибара остался помочь', marketDeliveryKnown: 'известно о вечерней партии', salesRecordsRecovered: 'сохранены записи о покупателях', cargoSecured: 'весь груз задержан', cargoLost: 'часть груза скрыта' };
 const conditionText = (condition) => [
+  ...(condition.drink ? [`выбран напиток: ${condition.drink}`] : []),
   ...(condition.found?.length ? [`найдено: ${condition.found.map((id) => clueNames[id]).join(', ')}`] : []),
   ...(condition.missing?.length ? [`не найдено: ${condition.missing.map((id) => clueNames[id]).join(', ')}`] : []),
   ...(condition.talkedToPorcupine === undefined ? [] : [condition.talkedToPorcupine ? 'после разговора с Игнатом' : 'сразу к волкам']),
@@ -27,6 +28,11 @@ const manuscript = [
     '', `## ${index + 1}. ${scene.chapter} — ${scene.id}`, '',
     `Картинка: ${scene.image}`, '',
     ...scene.dialogues.flatMap((line) => [`**${line.speaker}**${describeCondition(line.condition)}`, '', line.text, '']),
+    ...(scene.board ? [
+      `**Интерактивная доска: ${scene.board.title}**`, '',
+      scene.board.kind === 'drinks' ? 'Выбор напитка выполняется нажатием на название на доске. На маленьком экране доска открывается в увеличенном виде.' : 'Каждое объявление можно открыть и прочитать; это не меняет сюжетные решения.', '',
+      ...scene.board.items.flatMap(item => [`### ${item.title}`, '', item.text, '']),
+    ] : []),
     ...(scene.search ? [
       '**Интерактивный осмотр**', '',
       'Нажимать на области картинки можно в любом порядке. Каждая улика сохраняется один раз; её мысли можно перечитать. Осмотр разрешено закончить без находок.', '',

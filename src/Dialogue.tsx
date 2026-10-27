@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1 },
   heading: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   accent: { width: 20, height: 2, backgroundColor: '#9b753f' },
-  speaker: { color: '#846236', fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
+  speaker: { color: '#846236', fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', flexShrink: 1 },
   text: { color: '#111', fontSize: 21, lineHeight: 31 },
   smallText: { fontSize: 16, lineHeight: 24 },
   hidden: { color: 'transparent' },

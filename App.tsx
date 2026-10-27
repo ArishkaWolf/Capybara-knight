@@ -8,9 +8,11 @@ import { SceneBackdrop } from './src/SceneBackdrop';
 import { Dialogue } from './src/Dialogue';
 import { Inspection } from './src/Inspection';
 import { SceneInteraction } from './src/SceneInteraction';
+import { SceneBoard } from './src/SceneBoard';
+import { ChapterPicker } from './src/ChapterPicker';
 import { PlayerSelect } from './src/PlayerSelect';
 import { bundledImages } from './src/assets';
-import { advance, choose, inspect, finishSearch, interact, sceneLines, sceneChoices } from './src/engine.mjs';
+import { advance, choose, inspect, finishSearch, interact, sceneLines, sceneChoices, rewindChapter, dialogueForPlayer } from './src/engine.mjs';
 import { bundledPackage, imageUrl } from './src/repository';
 import { useNovel } from './src/useNovel';
 import type { EvidenceId, Progress } from './src/types';
@@ -35,6 +37,8 @@ function Novel() {
   const [screen, setScreen] = useState<'profiles' | 'home' | 'game'>('profiles');
   const choosingPlayer = screen === 'profiles' || !novel.activeProfile;
   const [menu, setMenu] = useState(false);
+  const [chaptersOpen, setChaptersOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [typing, setTyping] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -58,8 +62,10 @@ function Novel() {
   const lines = sceneLines(scene, progress.state);
   const availableChoices = sceneChoices(scene, progress.state);
   const activeInspection = progress.searching && inspection?.key === `${pack.story.version}:${scene.id}` ? scene.search?.hotspots.find((item) => item.id === inspection.id) : undefined;
-  const line = activeInspection && inspection ? activeInspection.dialogues[inspection.line] : !progress.searching && !progress.interacting && progress.line >= 0 ? lines[progress.line] : undefined;
+  const sourceLine = activeInspection && inspection ? activeInspection.dialogues[inspection.line] : !progress.searching && !progress.interacting && progress.line >= 0 ? lines[progress.line] : undefined;
+  const line = sourceLine ? dialogueForPlayer(sourceLine, novel.activeProfile?.name ?? '') : undefined;
   const showChoices = screen === 'game' && !progress.ending && !progress.searching && !progress.interacting && !typing && progress.line === lines.length - 1 && availableChoices.length > 0;
+  const boardChoice = showChoices && scene.board?.kind === 'drinks';
   const sceneIndex = pack.story.scenes.indexOf(scene);
 
   useEffect(() => {
@@ -85,8 +91,9 @@ function Novel() {
     if (Platform.OS !== 'android') return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       if (portrait) return true;
-      if (menu) { setMenu(false); setConfirmRestart(false); return true; }
-      if (screen === 'game') { setMenu(true); return true; }
+      if (boardOpen) { setBoardOpen(false); return true; }
+      if (menu) { if (chaptersOpen) setChaptersOpen(false); else { setMenu(false); setConfirmRestart(false); } return true; }
+      if (screen === 'game') { setChaptersOpen(false); setMenu(true); return true; }
       if (screen === 'home') { showPlayers(); return true; }
       return false;
     });
@@ -105,6 +112,7 @@ function Novel() {
   const onTyping = useCallback((value: boolean) => setTyping(value), []);
 
   function move(next: Progress) {
+    setBoardOpen(false);
     setInspection(null);
     setComplete(false);
     setTyping(next.line >= 0 && !next.ending && !reducedMotion);
@@ -112,7 +120,7 @@ function Novel() {
   }
 
   function next() {
-    if (screen !== 'game' || menu || portrait || !imageReady || progress.ending) return;
+    if (screen !== 'game' || menu || boardOpen || portrait || !imageReady || progress.ending) return;
     if (typing) { setComplete(true); setTyping(false); return; }
     if (Date.now() - lastTap.current < 180) return;
     lastTap.current = Date.now();
@@ -131,8 +139,10 @@ function Novel() {
     if (Platform.OS !== 'web') return;
     const keyDown = (event: KeyboardEvent) => {
       if (portrait || event.repeat || (event.target instanceof HTMLElement && event.target.closest('[role="button"], button, input, textarea'))) return;
+      if (event.key === 'Escape' && boardOpen) { setBoardOpen(false); return; }
+      if (event.key === 'Escape' && menu && chaptersOpen) { setChaptersOpen(false); return; }
       if (['ArrowRight', ' ', 'Enter'].includes(event.key)) { event.preventDefault(); next(); }
-      if (event.key === 'Escape' && screen === 'game') setMenu((current) => !current);
+      if (event.key === 'Escape' && screen === 'game') { setChaptersOpen(false); setMenu((current) => !current); }
     };
     window.addEventListener('keydown', keyDown);
     return () => window.removeEventListener('keydown', keyDown);
@@ -147,15 +157,18 @@ function Novel() {
   }
 
   function startFresh() {
+    setBoardOpen(false); setChaptersOpen(false);
     novel.restart(); setInspection(null); setScreen('game'); setMenu(false); setConfirmRestart(false); setComplete(false); setTyping(false);
   }
 
   function showPlayers() {
+    setBoardOpen(false); setChaptersOpen(false);
     setScreen('profiles'); setMenu(false); setConfirmRestart(false); setInspection(null); setTyping(false); setComplete(false);
     novel.clearPlayer();
   }
 
   function selectPlayer(id: string) {
+    setBoardOpen(false); setChaptersOpen(false);
     novel.selectPlayer(id); setScreen('home'); setInspection(null); setComplete(false); setTyping(false); lastTap.current = 0;
   }
 
@@ -168,7 +181,7 @@ function Novel() {
 
   function closeInspection() { setInspection(null); setComplete(false); setTyping(false); }
 
-  const choices = showChoices ? <View style={styles.choices}>{availableChoices.map((choice, i) => <Pressable key={choice.id} accessibilityRole="button" accessibilityLabel={choice.label} onPress={() => { if (imageReady && !portrait && !menu) move(choose(pack.story, progress, choice.id)); }} style={({ pressed }) => [styles.choice, availableChoices.length > 2 && { flexBasis: width < 760 ? '45%' : '30%' }, pressed && { backgroundColor: '#eadbc5' }]}><Text style={styles.choiceNumber}>{String(i + 1).padStart(2, '0')}</Text><Text style={styles.choiceText}>{choice.label}</Text><Text style={styles.choiceArrow}>→</Text></Pressable>)}</View> : null;
+  const choices = showChoices && !boardChoice ? <View style={styles.choices}>{availableChoices.map((choice, i) => <Pressable key={choice.id} accessibilityRole="button" accessibilityLabel={choice.label} onPress={() => { if (imageReady && !portrait && !menu) move(choose(pack.story, progress, choice.id)); }} style={({ pressed }) => [styles.choice, availableChoices.length > 2 && { flexBasis: width < 760 ? '45%' : '30%' }, pressed && { backgroundColor: '#eadbc5' }]}><Text style={styles.choiceNumber}>{String(i + 1).padStart(2, '0')}</Text><Text style={styles.choiceText}>{choice.label}</Text><Text style={styles.choiceArrow}>→</Text></Pressable>)}</View> : null;
   const playerSwitcher = <Pressable accessibilityRole="button" accessibilityLabel="Сменить игрока" onPress={showPlayers} style={[styles.playerSwitch, { position: 'absolute', bottom: Math.max(18, insets.bottom + 12), left: Math.max(24, insets.left + 18), maxWidth: width * 0.4 }]}><Text numberOfLines={2} style={styles.currentPlayer}>Играет: {novel.activeProfile?.name}</Text><Text style={styles.switchLabel}>Сменить игрока →</Text></Pressable>;
 
   return <View style={styles.root} onLayout={({ nativeEvent }) => setLayout({ width: nativeEvent.layout.width, height: nativeEvent.layout.height })}>
@@ -200,8 +213,9 @@ function Novel() {
       </View>
       {progress.searching && scene.search && imageReady && !progress.ending && <Inspection key={`${pack.story.version}:${scene.id}`} search={scene.search} evidence={progress.state.evidence ?? []} width={width} height={height} insets={insets} busy={Boolean(activeInspection)} onInspect={inspectClue} onFinish={() => move(finishSearch(pack.story, progress))} />}
       {progress.interacting && scene.interaction && imageReady && !progress.ending && <SceneInteraction key={`${pack.story.version}:${scene.id}`} interaction={scene.interaction} width={width} height={height} insets={insets} onInteract={(id) => { if (!menu && !portrait) move(interact(pack.story, progress, id)); }} />}
-      {!progress.ending && imageReady && <View pointerEvents="box-none" style={[styles.dialoguePosition, { left: Math.max(24, insets.left + 16, (width - 1180) / 2), right: Math.max(24, insets.right + 16, (width - 1180) / 2), bottom: Math.max(22, insets.bottom + 14) }]}>
-        {line ? <Dialogue key={`${pack.story.version}:${scene.id}:${activeInspection && inspection ? `${inspection.id}:${inspection.line}` : progress.line}`} line={line} complete={complete} reducedMotion={reducedMotion} paused={menu || portrait || !foreground} compact={compact} maxHeight={Math.max(100, height - insets.top - insets.bottom - 100) * 0.85} onTyping={onTyping} onAdvance={(pageX) => { if (pageX >= width / 2) next(); }}>
+      {!progress.ending && imageReady && scene.board && !menu && (scene.board.kind === 'notices' || boardChoice) && <SceneBoard key={`${pack.story.version}:${scene.id}`} board={scene.board} width={width} height={height} insets={insets} open={boardOpen} reducedMotion={reducedMotion} onOpenChange={setBoardOpen} onChoose={(id) => { if (!menu && !portrait && imageReady && boardChoice) move(choose(pack.story, progress, id)); }} />}
+      {!progress.ending && imageReady && !boardChoice && <View pointerEvents="box-none" style={[styles.dialoguePosition, { left: Math.max(24, insets.left + 16, (width - 1180) / 2), right: Math.max(24, insets.right + 16, (width - 1180) / 2), bottom: Math.max(22, insets.bottom + 14) }]}>
+        {line ? <Dialogue key={`${novel.activeProfile?.id}:${novel.activeProfile?.name}:${pack.story.version}:${scene.id}:${activeInspection && inspection ? `${inspection.id}:${inspection.line}` : progress.line}`} line={line} complete={complete} reducedMotion={reducedMotion} paused={menu || boardOpen || portrait || !foreground} compact={compact} maxHeight={Math.max(100, height - insets.top - insets.bottom - 100) * 0.85} onTyping={onTyping} onAdvance={(pageX) => { if (pageX >= width / 2) next(); }}>
           {choices}
           <Pressable accessibilityRole="button" accessibilityLabel="Продолжить чтение" onPress={next} style={styles.dialogueFooter}><Text style={styles.dialogueHint}>{showChoices ? 'Выбери один из вариантов' : typing ? 'Нажми справа, чтобы показать текст' : activeInspection ? 'Нажми справа, чтобы продолжить осмотр' : 'Нажми на правую часть экрана'}</Text><Text style={styles.nextArrow}>{showChoices ? '◇' : '→'}</Text></Pressable>
           {activeInspection && <Pressable accessibilityRole="button" accessibilityLabel="Вернуться к осмотру" onPress={closeInspection} style={styles.returnToSearch}><Text style={styles.returnToSearchText}>Вернуться к осмотру</Text></Pressable>}
@@ -219,7 +233,7 @@ function Novel() {
 
     <View style={[styles.toolbar, { top: Math.max(16, insets.top + 10), right: Math.max(20, insets.right + 12) }]}>
       {supportsFullscreen && <Pressable accessibilityRole="button" accessibilityLabel="Полный экран" onPress={fullscreen} style={styles.iconButton}><Text style={styles.icon}>⛶</Text></Pressable>}
-      {!choosingPlayer && <Pressable accessibilityRole="button" accessibilityLabel="Открыть меню" onPress={() => { setConfirmRestart(false); setMenu(true); }} style={styles.iconButton}><Text style={styles.menuIcon}>•••</Text></Pressable>}
+      {!choosingPlayer && <Pressable accessibilityRole="button" accessibilityLabel="Открыть меню" onPress={() => { setConfirmRestart(false); setChaptersOpen(false); setMenu(true); }} style={styles.iconButton}><Text style={styles.menuIcon}>•••</Text></Pressable>}
     </View>
 
     {!choosingPlayer && slowImage && !imageReady && !imageError && <View pointerEvents="none" style={styles.loading}><ActivityIndicator color="#e1bf84" /><Text style={styles.loadingText}>Открываем сцену…</Text></View>}
@@ -228,20 +242,21 @@ function Novel() {
     {!choosingPlayer && novel.pending && !menu && <View style={[styles.update, { top: Math.max(74, insets.top + 66) }]}><Text style={styles.updateText}>Доступно обновление истории</Text><Pressable accessibilityRole="button" onPress={() => { setComplete(false); setTyping(false); void novel.applyUpdate(); }}><Text style={styles.updateAction}>Обновить ↻</Text></Pressable></View>}
     {!choosingPlayer && Boolean(novel.notice) && !menu && <Pressable accessibilityRole="button" accessibilityLabel={`${novel.notice} Закрыть уведомление`} onPress={() => novel.setNotice('')} style={styles.notice}><Text style={styles.noticeText}>{novel.notice}  ×</Text></Pressable>}
 
-    <Modal visible={menu} transparent animationType={reducedMotion ? 'none' : 'fade'} supportedOrientations={['portrait', 'landscape-left', 'landscape-right']} onRequestClose={() => { setMenu(false); setConfirmRestart(false); }}>
+    <Modal visible={menu} transparent animationType={reducedMotion ? 'none' : 'fade'} supportedOrientations={['portrait', 'landscape-left', 'landscape-right']} onRequestClose={() => { if (chaptersOpen) setChaptersOpen(false); else { setMenu(false); setConfirmRestart(false); } }}>
       <View style={styles.overlay}><ScrollView style={{ width: '100%' }} contentContainerStyle={[styles.modalScroll, { paddingTop: Math.max(20, insets.top + 12), paddingBottom: Math.max(20, insets.bottom + 12), paddingLeft: insets.left + 16, paddingRight: insets.right + 16 }]}><View style={[styles.menuCard, compact && { padding: 24, width: 420 }]}>
-        <Text style={[styles.menuTitle, { fontFamily: serif }]}>{confirmRestart ? 'Новая история?' : 'Передышка'}</Text>
-        {confirmRestart ? <><Text style={styles.endText}>Прогресс игрока «{novel.activeProfile?.name}» будет заменён. Начать с первой сцены?</Text><Button label="Начать заново" light onPress={startFresh} /><Button label="Вернуться" onPress={() => setConfirmRestart(false)} /></> : <>
+        {chaptersOpen ? <ChapterPicker story={pack.story} progress={progress} onClose={() => setChaptersOpen(false)} onRewind={(id) => { const restored = rewindChapter(pack.story, progress, id); if (restored === progress) return; move(restored); setScreen('game'); setMenu(false); setChaptersOpen(false); setConfirmRestart(false); }} /> : <Text style={[styles.menuTitle, { fontFamily: serif }]}>{confirmRestart ? 'Новая история?' : 'Передышка'}</Text>}
+        {!chaptersOpen && (confirmRestart ? <><Text style={styles.endText}>Прогресс игрока «{novel.activeProfile?.name}» будет заменён. Начать с первой сцены?</Text><Button label="Начать заново" light onPress={startFresh} /><Button label="Вернуться" onPress={() => setConfirmRestart(false)} /></> : <>
           <Text style={styles.menuPlayer}>Играет: {novel.activeProfile?.name}</Text>
           <Text style={styles.menuDescription}>Нажимай справа, чтобы менять реплики и сцены. Первое нажатие во время чтения показывает весь текст. В моменты выбора нажми на вариант ответа.</Text>
           <Button label={screen === 'game' ? 'Вернуться к истории' : 'Закрыть меню'} light onPress={() => setMenu(false)} />
           {screen === 'game' && <Button label="Главное меню" onPress={() => { setMenu(false); setScreen('home'); }} />}
+          <Button label="Пройденные главы" disabled={!novel.hasSave} onPress={() => setChaptersOpen(true)} />
           <Button label="Сменить игрока" onPress={showPlayers} />
           <Button label="Начать заново" disabled={!novel.ready} onPress={() => setConfirmRestart(true)} />
           <Button label={novel.pending ? 'Применить обновление истории' : novel.checking ? 'Проверяем…' : 'Проверить обновления'} disabled={novel.checking} onPress={() => { if (novel.pending) { setComplete(false); setTyping(false); void novel.applyUpdate(); } else void novel.checkUpdates(true); }} />
           {Boolean(novel.notice) && <Text style={styles.menuNotice}>{novel.notice}</Text>}
           <Text style={styles.version}>ПРОГРЕСС СОХРАНЯЕТСЯ АВТОМАТИЧЕСКИ · {pack.story.version}</Text>
-        </>}
+        </>)}
       </View></ScrollView></View>
     </Modal>
 

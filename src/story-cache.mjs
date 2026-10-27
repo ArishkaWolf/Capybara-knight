@@ -1,6 +1,6 @@
 import { validateStory } from './engine.mjs';
 
-function olderRelease(version, bundledVersion) {
+export function olderRelease(version, bundledVersion) {
   const pattern = /^(\d{4}-\d{2}-\d{2})\.(\d+)$/;
   const cached = version.match(pattern);
   const bundled = bundledVersion.match(pattern);

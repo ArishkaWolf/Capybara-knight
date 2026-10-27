@@ -3,6 +3,7 @@ import { AppState, Platform } from 'react-native';
 import { newProgress } from './engine.mjs';
 import { addPlayer, emptyProfiles, reconcilePlayers, renamePlayer, updatePlayerProgress } from './profiles.mjs';
 import { bundledPackage, restore, saveProfiles, cachePackage, fetchStory } from './repository';
+import { olderRelease } from './story-cache.mjs';
 import type { ProfileLibrary, Progress, StoryPackage } from './types';
 
 export function useNovel() {
@@ -85,7 +86,7 @@ export function useNovel() {
     setChecking(true);
     try {
       const fresh = await fetchStory();
-      if (fresh && fresh.story.version !== current.current.story.version) {
+      if (fresh && fresh.story.version !== current.current.story.version && !olderRelease(fresh.story.version, current.current.story.version)) {
         setPending(fresh);
       } else {
         setPending(null);
