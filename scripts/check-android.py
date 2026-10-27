@@ -51,14 +51,17 @@ def next_to(label, timeout=90):
         for node in root.iter('node'):
             if label in (node.get('content-desc', ''), node.get('text', '')):
                 return
-        for action in ['Продолжить чтение', 'Следующая реплика или сцена', 'Показать реплику целиком']:
+        for action in ['Продолжить историю', 'Продолжить чтение', 'Следующая реплика или сцена', 'Показать реплику целиком']:
             node = next((item for item in root.iter('node') if item.get('content-desc') == action and item.get('enabled') == 'true'), None)
             if node is not None:
                 left, top, right, bottom = map(int, re.findall(r'\d+', node.get('bounds')))
-                adb('shell', 'input', 'tap', str((left + right) // 2), str((top + bottom) // 2))
+                x = right - 80 if action in ['Следующая реплика или сцена', 'Показать реплику целиком'] else (left + right) // 2
+                y = bottom - 100 if action in ['Следующая реплика или сцена', 'Показать реплику целиком'] else (top + bottom) // 2
+                adb('shell', 'input', 'tap', str(x), str(y))
                 break
         time.sleep(0.3)
     (OUT / 'failure.png').write_bytes(adb('exec-out', 'screencap', '-p'))
+    (OUT / 'failure.xml').write_bytes(adb('exec-out', 'cat', '/sdcard/window.xml'))
     raise AssertionError(f'Story did not reach: {label}')
 
 
@@ -87,8 +90,8 @@ adb('shell', 'input', 'text', 'MobileTest')
 adb('shell', 'input', 'keyevent', '4')
 tap('Создать профиль')
 tap('Начать историю →')
-wait_node('Нажми справа, чтобы продолжить →')
-tap('Следующая реплика или сцена')
+wait_node('Продолжить историю')
+tap('Продолжить историю')
 FIRST_LINE = 'Ни одного знакомого поворота. Я впервые забрался так далеко, а лес всё тянется и тянется — будто дорога решила проверить моё терпение.'
 wait_node(FIRST_LINE)
 assert any('mobiletest' in (node.get('text', '') + node.get('content-desc', '')).lower() and 'мысли' in (node.get('text', '') + node.get('content-desc', '')).lower() for node in tree().iter('node'))
@@ -116,6 +119,7 @@ notices = next(scene['board'] for scene in story['scenes'] if scene.get('board',
 wait_node(notices['items'][0]['text'])
 (OUT / 'notice.png').write_bytes(adb('exec-out', 'screencap', '-p'))
 tap('Закрыть доску')
+assert all(node.get('content-desc') != 'Закрыть доску' for node in tree().iter('node'))
 next_to('Увеличить доску: Наши напитки')
 tap('Увеличить доску: Наши напитки')
 tap_scroll('Заказать: Какао с зефиром')

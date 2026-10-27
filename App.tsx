@@ -208,7 +208,7 @@ function Novel() {
       </ScrollView>
       {playerSwitcher}
     </> : <>
-      <Pressable accessibilityRole="button" accessibilityLabel={progress.interacting ? scene.interaction?.hint ?? 'Сначала прочитай записку на стойке' : progress.searching && !activeInspection ? 'Осматривай предметы на картинке' : showChoices ? 'Сначала выбери действие в диалоге' : typing ? 'Показать реплику целиком' : 'Следующая реплика или сцена'} onPress={next} style={styles.tapArea} />
+      <Pressable accessibilityRole="button" accessibilityLabel={progress.interacting ? scene.interaction?.hint ?? 'Сначала прочитай записку на стойке' : progress.searching && !activeInspection ? 'Осматривай предметы на картинке' : boardChoice ? 'Выбери напиток на доске' : showChoices ? 'Сначала выбери действие в диалоге' : typing ? 'Показать реплику целиком' : 'Следующая реплика или сцена'} onPress={next} style={styles.tapArea} />
       <View pointerEvents="none" style={[styles.sceneHeading, { top: Math.max(20, insets.top + 12), left: Math.max(24, insets.left + 18) }]}>
         <Text style={styles.chapter}>{scene.chapter}</Text>
         <Text style={styles.counter}>{String(sceneIndex + 1).padStart(2, '0')} / {String(pack.story.scenes.length).padStart(2, '0')}</Text>
@@ -221,7 +221,7 @@ function Novel() {
           {choices}
           <Pressable accessibilityRole="button" accessibilityLabel="Продолжить чтение" onPress={next} style={styles.dialogueFooter}><Text style={styles.dialogueHint}>{showChoices ? 'Выбери один из вариантов' : typing ? 'Нажми справа, чтобы показать текст' : activeInspection ? 'Нажми справа, чтобы продолжить осмотр' : 'Нажми на правую часть экрана'}</Text><Text style={styles.nextArrow}>{showChoices ? '◇' : '→'}</Text></Pressable>
           {activeInspection && <Pressable accessibilityRole="button" accessibilityLabel="Вернуться к осмотру" onPress={closeInspection} style={styles.returnToSearch}><Text style={styles.returnToSearchText}>Вернуться к осмотру</Text></Pressable>}
-        </Dialogue> : choices ? <ScrollView style={[styles.emptyChoiceCard, { maxHeight: height * 0.65 }]} contentContainerStyle={{ padding: 20 }}><Text style={styles.choicePrompt}>Как ты поступишь?</Text>{choices}</ScrollView> : !progress.searching && !progress.interacting ? <View pointerEvents="none" style={styles.sceneHint}><Text style={styles.sceneHintText}>Нажми справа, чтобы продолжить  →</Text></View> : null}
+        </Dialogue> : choices ? <ScrollView style={[styles.emptyChoiceCard, { maxHeight: height * 0.65 }]} contentContainerStyle={{ padding: 20 }}><Text style={styles.choicePrompt}>Как ты поступишь?</Text>{choices}</ScrollView> : !progress.searching && !progress.interacting ? <Pressable accessibilityRole="button" accessibilityLabel="Продолжить историю" onPress={next} style={styles.sceneHint}><Text style={styles.sceneHintText}>Продолжить →</Text></Pressable> : null}
       </View>}
       {progress.ending && <View style={styles.overlay}>
         <ScrollView contentContainerStyle={[styles.modalScroll, { paddingTop: Math.max(80, insets.top + 72), paddingBottom: Math.max(20, insets.bottom + 12) }]} style={{ width: '100%' }}>
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   choiceArrow: { color: '#a0814e', fontSize: 18 },
   emptyChoiceCard: { backgroundColor: '#fff', borderRadius: 4 },
   choicePrompt: { color: '#111', fontSize: 18 },
-  sceneHint: { alignSelf: 'flex-end', backgroundColor: 'rgba(18, 13, 8, 0.6)', paddingHorizontal: 16, paddingVertical: 11, borderRadius: 3 },
+  sceneHint: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-end', backgroundColor: 'rgba(18, 13, 8, 0.6)', paddingHorizontal: 16, paddingVertical: 11, borderRadius: 3 },
   sceneHintText: { color: '#f0e0c5', fontSize: 12, letterSpacing: 0.4 },
   overlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(12, 10, 7, 0.82)', justifyContent: 'center', alignItems: 'center' },
   endCard: { maxWidth: 580, width: '86%', padding: 40, backgroundColor: '#201a13', borderRadius: 5, borderWidth: 1, borderColor: '#5e4930' },
