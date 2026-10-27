@@ -68,6 +68,8 @@ function Novel() {
   const boardChoice = showChoices && scene.board?.kind === 'drinks';
   const sceneIndex = pack.story.scenes.indexOf(scene);
 
+  useEffect(() => { setBoardOpen(false); }, [scene.id, pack.story.version, novel.activeProfile?.id]);
+
   useEffect(() => {
     setSlowImage(false);
     if (imageReady || imageError) return;
